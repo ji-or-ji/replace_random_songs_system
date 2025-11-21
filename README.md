@@ -2,7 +2,7 @@
 
 ## 🎵 随机点歌系统
 
-这是前[random songs系统](https://gitee.com/ji-or-ji/random_songs)的重制版。这一个功能丰富的Python命令行 _可能做图形化？_ 随机点歌系统，支持完整的歌曲管理、点歌人管理、多歌单支持、自动网页跳转和操作历史记录功能。
+这是前[random songs系统](https://gitee.com/ji-or-ji/random_songs)的重制版。这一个功能丰富的Python命令行 ~~可能做图形化？~~ * 随机点歌系统，支持完整的歌曲管理、点歌人管理、多歌单支持、自动网页跳转和操作历史记录功能。
 
 ### ✨ 核心功能
 
@@ -82,12 +82,21 @@
    ```text
    random_songs/
    ├── main_data/
-   │   ├── main.py              # 主程序
-   │   ├── history_records.json # 历史记录文件
-   │   ├── playlists_config.json # 歌单配置文件
-   │   ├── auto_jump_config.json # 自动跳转配置文件
-   │   ├── songs_list.json      # 默认歌单歌曲数据
-   │   └── playlist_2.json      # 第二个歌单歌曲数据
+   │   ├── play_list_1/                # 歌单1
+   │   │   ├── play_lists_config.json # 歌单配置文件
+   │   │   ├── history_records.log    # 历史记录文件
+   │   │   ├── requester_list.json    # 点歌人数据
+   │   │   ├── songs_list.json        # 歌单歌曲数据
+   │   ├── play_list_2/                # 歌单2
+   │   │   ├── play_lists_config.json # 歌单配置文件
+   │   │   ├── history_records.log    # 历史记录文件
+   │   │   ├── requester_list.json    # 点歌人数据
+   │   │   ├── songs_list.json        # 歌单歌曲数据
+   │   └ ...                           # 更多歌单...
+   ├── src/                            # 主程序
+   │   ├── main.py                    # 主函数
+   │   ├── history_manager.py         #历史记录相关函数
+   │   ├── 
    ├── LICENSE
    ├── README.md               # 说明文档
    └── test_*.py              # 测试文件
