@@ -1,6 +1,3 @@
-# 数据文件
-main_data/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -19,23 +16,66 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# 系统文件
+*~
 .DS_Store
 Thumbs.db
 
-# 日志文件
-*.log
+# Project specific
+main_data/             # 运行时数据目录（不应上传到版本控制）
+!main_data/.gitkeep    # 保留目录结构（如果需要的话）
+*.log                  # 日志文件
+*.log.*                # 滚动日志
+*.tmp                  # 临时文件
+*.temp                 # 临时文件
+.cache/                # 缓存目录
+.spotlight-*
 
-# 临时文件
-*.tmp
-*.temp
+# 测试覆盖报告
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+
+# 配置文件（敏感信息）
+config.yaml            # 如果有的话
+local_config.yaml      # 本地配置
+secrets.yaml           # 密钥文件
+
+# 数据库文件（如果未来添加数据库支持）
+*.db
+*.sqlite
+*.sqlite3
+
+# 打包文件
+*.exe
+*.msi
+*.dmg
+*.pkg
+
+# 环境文件（除非是示例）
+.env
+.env.local
+.env.*.local
+
+# 备份文件
+backup/
+*.bak
+*.backup

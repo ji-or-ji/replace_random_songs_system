@@ -19,8 +19,6 @@ from duplicate_prevention_manager import duplicate_prevention_menu
 
 def initialize_system():
     """初始化系统，检查并创建必要的文件和目录"""
-    import os
-    import json
     
     # 创建主数据目录
     main_data_dirs = [
@@ -49,15 +47,15 @@ def initialize_system():
         print("✅ 创建全局配置文件")
     
     # 检查并创建歌单配置文件
-    playlist_config_path = 'main_data/play_list_1/play_lists_config.json'
+    playlist_config_path = 'main_data/play_list_main/config.json'
     if not os.path.exists(playlist_config_path):
         playlist_config = {
-            "current_playlist": "play_list_1",
+            "current_playlist": "play_list_main",
             "playlists": {
-                "play_list_1": {
+                "play_list_main": {
                     "name": "默认歌单",
-                    "description": "系统自动创建的主歌单",
-                    "file_path": "main_data/play_list_1/songs_list.json",
+                    "description": "主歌单",
+                    "file_path": "main_data/play_list_main/songs_list.json",
                     "requester_file_path": "main_data/play_list_1/requester_list.json",
                     "history_file_path": "main_data/play_list_1/history_records.log",
                     "created_at": datetime.datetime.now().strftime("%Y/%m/%d"),
