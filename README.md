@@ -44,101 +44,101 @@ Random Songs 是一个功能丰富的Python随机点歌系统，支持完整的�
 1. **下载项目**：
 
    ```bash
-   git clone [项目地址]
+   git clone https://gitee.com/ji-or-ji/replace_random_songs_system.git
    cd replace_random_songs_system
    ```
 
 2. **检查文件完整性**
 
-  ```text
-  replace_random_songs_system/          # 项目根目录
-  ├── src/                              # 源代码目录
-  │   ├── main.py                       # 程序主入口文件
-  │   ├── __init__.py                   # Python包标识文件
-  │   ├── core/                         # 核心业务逻辑模块
-  │   │   ├── __init__.py
-  │   │   ├── song_operations.py        # 歌曲点播、随机选择等核心操作
-  │   │   └── data_access.py            # 统一数据读写接口
-  │   ├── managers/                     # 各功能管理模块
-  │   │   ├── __init__.py
-  │   │   ├── auto_jump_manager.py      # 管理自动网页跳转功能
-  │   │   ├── config_manager.py         # 管理系统全局配置
-  │   │   ├── duplicate_prevention_manager.py # 管理重复播放检测
-  │   │   ├── history_manager.py        # 管理播放与操作历史记录
-  │   │   ├── playlist_manager.py       # 管理歌单（创建、切换、删除）
-  │   │   ├── requester_manager.py      # 管理点歌人信息
-  │   │   └── song_manager.py           # 管理歌单内的歌曲（增删改查）
-  │   ├── utils/                        # 工具类模块
-  │   │   ├── __init__.py
-  │   │   ├── file_utils.py             # 通用文件操作工具
-  │   │   ├── validation.py             # 数据验证工具
-  │   │   └── yaml_handler.py           # YAML配置文件读写工具
-  │   ├── cli/                          # 命令行界面模块
-  │   │   ├── __init__.py
-  │   │   └── cli_interface.py          # 命令行主界面与交互逻辑
-  │   └── gui/                          # (预留)图形用户界面模块
-  │       └── __init__.py
-  ├── tests/                            # 单元测试目录
-  │   ├── __init__.py
-  │   ├── test_main.py                  # 主流程测试
-  │   ├── test_managers/                # 各管理模块测试
-  │   │   ├── __init__.py
-  │   │   ├── test_playlist_manager.py
-  │   │   └── ...                       # 其他manager测试
-  │   └── test_utils/                   # 工具类测试
-  │       ├── __init__.py
-  │       └── test_yaml_handler.py
-  ├── docs/                             # 项目文档
-  │   ├── api.md                        # 模块API接口说明
-  │   ├── user_guide.md                 # 用户使用指南
-  │   └── config_examples/              # 配置文件示例
-  │       ├── global_config.yaml        # 全局配置示例
-  │       └── playlist_template.yaml    # 歌单模板示例
-  ├── main_data/                        # 程序运行时数据存储目录
-  │   ├── global/                       # 全局数据
-  │   │   ├── global_config.yaml        # 当前生效的全局配置
-  │   │   ├── global_play_history.log   # 全歌单播放历史记录
-  │   │   ├── global_operate_history.log # 全歌单操作历史记录
-  │   │   └── system_stats.yaml         # 系统统计信息（如点播次数）
-  │   ├── playlists/                    # 各歌单数据目录
-  │   │   ├── default/                  # 默认歌单
-  │   │   │   ├── meta.yaml             # 歌单元数据（名称、说明）
-  │   │   │   ├── songs.yaml            # 歌曲列表文件
-  │   │   │   ├── requesters.yaml       # 该歌单关联的点歌人列表
-  │   │   │   ├── play_history.log      # 本歌单播放历史
-  │   │   │   ├── operate_history.log   # 本歌单操作历史
-  │   │   │   └── music_files/          # 歌曲关联的媒体文件目录
-  │   │   │       ├── songs1/           # 单首歌曲的媒体文件子目录
-  │   │   │       │   ├── music.mp3     # 音频文件
-  │   │   │       │   └── lyrics.txt    # 歌词文件
-  │   │   │       └── ...
-  │   │   ├── play_list1/               # 用户创建的歌单1
-  │   │   │   └── ...                   # 结构同default
-  │   │   ├── play_list2/               # 用户创建的歌单2
-  │   │   │   └── ...                   # 结构同default
-  │   │   └── ...                       # 其他歌单
-  │   └── templates/                    # 数据模板目录
-  │       ├── playlist_template.yaml    # 新建歌单的配置模板
-  │       ├── requester_template.yaml   # 点歌人信息模板
-  │       └── song_template.yaml        # 歌曲信息模板
-  ├── scripts/                          # 实用脚本目录
-  │   ├── migrate_json_to_yaml.py       # (旧版迁移)JSON转YAML脚本
-  │   └── backup_data.py                # 数据备份脚本
-  ├── requirements.txt                  # 项目运行依赖包列表
-  ├── requirements-dev.txt              # 项目开发依赖包列表
-  ├── setup.py                          # 项目安装与打包配置
-  ├── LICENSE                           # 开源许可证文件
-  ├── README.md                         # 项目总述文档
-  ├── .gitignore                        # Git版本管理忽略文件配置
-  ├── .env.example                      # 环境变量示例文件
-  └── run_tests.py                      # 一键运行测试脚本
-  ```
+   ```text
+   replace_random_songs_system/          # 项目根目录
+   ├── src/                              # 源代码目录
+   │   ├── main.py                       # 程序主入口文件
+   │   ├── __init__.py                   # Python包标识文件
+   │   ├── core/                         # 核心业务逻辑模块
+   │   │   ├── __init__.py
+   │   │   ├── song_operations.py        # 歌曲点播、随机选择等核心操作
+   │   │   └── data_access.py            # 统一数据读写接口
+   │   ├── managers/                     # 各功能管理模块
+   │   │   ├── __init__.py
+   │   │   ├── auto_jump_manager.py      # 管理自动网页跳转功能
+   │   │   ├── config_manager.py         # 管理系统全局配置
+   │   │   ├── duplicate_prevention_manager.py # 管理重复播放检测
+   │   │   ├── history_manager.py        # 管理播放与操作历史记录
+   │   │   ├── playlist_manager.py       # 管理歌单（创建、切换、删除）
+   │   │   ├── requester_manager.py      # 管理点歌人信息
+   │   │   └── song_manager.py           # 管理歌单内的歌曲（增删改查）
+   │   ├── utils/                        # 工具类模块
+   │   │   ├── __init__.py
+   │   │   ├── file_utils.py             # 通用文件操作工具
+   │   │   ├── validation.py             # 数据验证工具
+   │   │   └── yaml_handler.py           # YAML配置文件读写工具
+   │   ├── cli/                          # 命令行界面模块
+   │   │   ├── __init__.py
+   │   │   └── cli_interface.py          # 命令行主界面与交互逻辑
+   │   └── gui/                          # (预留)图形用户界面模块
+   │       └── __init__.py
+   ├── tests/                            # 单元测试目录
+   │   ├── __init__.py
+   │   ├── test_main.py                  # 主流程测试
+   │   ├── test_managers/                # 各管理模块测试
+   │   │   ├── __init__.py
+   │   │   ├── test_playlist_manager.py
+   │   │   └── ...                       # 其他manager测试
+   │   └── test_utils/                   # 工具类测试
+   │       ├── __init__.py
+   │       └── test_yaml_handler.py
+   ├── docs/                             # 项目文档
+   │   ├── api.md                        # 模块API接口说明
+   │   ├── user_guide.md                 # 用户使用指南
+   │   └── config_examples/              # 配置文件示例
+   │       ├── global_config.yaml        # 全局配置示例
+   │       └── playlist_template.yaml    # 歌单模板示例
+   ├── main_data/                        # 程序运行时数据存储目录
+   │   ├── global/                       # 全局数据
+   │   │   ├── global_config.yaml        # 当前生效的全局配置
+   │   │   ├── global_play_history.log   # 全歌单播放历史记录
+   │   │   ├── global_operate_history.log # 全歌单操作历史记录
+   │   │   └── system_stats.yaml         # 系统统计信息（如点播次数）
+   │   ├── playlists/                    # 各歌单数据目录
+   │   │   ├── default/                  # 默认歌单
+   │   │   │   ├── meta.yaml             # 歌单元数据（名称、说明）
+   │   │   │   ├── songs.yaml            # 歌曲列表文件
+   │   │   │   ├── requesters.yaml       # 该歌单关联的点歌人列表
+   │   │   │   ├── play_history.log      # 本歌单播放历史
+   │   │   │   ├── operate_history.log   # 本歌单操作历史
+   │   │   │   └── music_files/          # 歌曲关联的媒体文件目录
+   │   │   │       ├── songs1/           # 单首歌曲的媒体文件子目录
+   │   │   │       │   ├── music.mp3     # 音频文件
+   │   │   │       │   └── lyrics.txt    # 歌词文件
+   │   │   │       └── ...
+   │   │   ├── play_list1/               # 用户创建的歌单1
+   │   │   │   └── ...                   # 结构同default
+   │   │   ├── play_list2/               # 用户创建的歌单2
+   │   │   │   └── ...                   # 结构同default
+   │   │   └── ...                       # 其他歌单
+   │   └── templates/                    # 数据模板目录
+   │       ├── playlist_template.yaml    # 新建歌单的配置模板
+   │       ├── requester_template.yaml   # 点歌人信息模板
+   │       └── song_template.yaml        # 歌曲信息模板
+   ├── scripts/                          # 实用脚本目录
+   │   ├── migrate_json_to_yaml.py       # (旧版迁移)JSON转YAML脚本
+   │   └── backup_data.py                # 数据备份脚本
+   ├── requirements.txt                  # 项目运行依赖包列表
+   ├── requirements-dev.txt              # 项目开发依赖包列表
+   ├── setup.py                          # 项目安装与打包配置
+   ├── LICENSE                           # 开源许可证文件
+   ├── README.md                         # 项目总述文档
+   ├── .gitignore                        # Git版本管理忽略文件配置
+   ├── .env.example                      # 环境变量示例文件
+   └── run_tests.py                      # 一键运行测试脚本
+    ```
 
 3. **安装依赖**：
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 4. **运行程序**：
 
@@ -368,6 +368,7 @@ playlists:
 ```
 
 ### 点歌人配置文件
+
 每个歌单的`requesters.yaml`文件：
 
 ```yaml
@@ -383,9 +384,10 @@ requesters:
 ```
 
 ### 历史记录文件
+
 历史记录以日志格式存储，便于查阅和分析：
 
-```
+```text
 [2025-08-31 14:39:22] 添加歌曲 - 歌曲: 心动(beautiful) - 歌手: 伯贤 - 点歌人: 陈星彤 - 结果: 成功
 [2025-08-31 14:38:11] 添加歌曲 - 歌曲: IF YOU - 歌手: BIGBANG - 点歌人: 陈星彤 - 结果: 成功
 ```
@@ -572,16 +574,32 @@ pip install -r requirements-dev.txt
 - 为新增功能编写测试用例
 - 更新相关文档
 
+**如果有任何问题或建议，欢迎在项目中提交反馈。希望Random Songs系统能让你的音乐分享和播放体验更加愉快！**
+
 ## 📄 许可证
 
-本项目采用开源许可证，具体信息请查看LICENSE文件。
+本项目采用开源许可证，具体信息请查看[LICENSE](LICENSE)文件。
 
----
+**关于更新节奏**：我会在确保核心功能稳定的前提下，利用假期和周末进行维护。如果你也想贡献代码或改进文档，随时欢迎PR！
 
-**最后更新**：2025年12月6日
+**最后更新**：2025年12月7日
 
 **当前版本**：v2.0（重构版）
 
-**项目状态**：稳定可用，功能持续完善中
+**项目状态**：稳定可用，功能完善中...
 
-如果有任何问题或建议，欢迎在项目中提交反馈。希望Random Songs系统能让你的音乐分享和播放体验更加愉快！
+---
+
+## 写在后面
+
+### 💌 来自开发者的一点心里话
+
+我是这个项目的开发者，目前正在读高一。
+
+这个项目是我利用课余时间一点点搭建起来的——从最初简陋的脚本到现在这个还算完整的系统。每次看到有人用它点歌，我都觉得那些调试代码的夜晚特别值得
+
+不过作为学生，学业确实占据了我大部分时间。这个项目的更新可能会很慢，有时候问题修复要等上几周甚至更久。如果你在使用中遇到问题，我非常欢迎你在Issues里提出；如果你等不及我的修复，也完全可以fork一份自己修改——毕竟开源的意义就在于此
+
+对我来说，编程不只是写代码，更是一种表达方式。这个项目就像我的技术日记，记录了我如何把一个简单的想法变成实际可用的东西。它或许不完美，但每一行代码都是我真真实实思考过的痕迹
+
+感谢你花时间了解这个项目。如果它恰好对你有用，那就是对我最好的鼓励（送花花）！
