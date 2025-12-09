@@ -110,7 +110,7 @@ Random Songs 是一个功能丰富的Python随机点歌系统，支持完整的�
    │   │   │   └── music_files/          # 歌曲关联的媒体文件目录
    │   │   │       ├── songs1/           # 单首歌曲的媒体文件子目录
    │   │   │       │   ├── music.mp3     # 音频文件
-   │   │   │       │   └── lyrics.txt    # 歌词文件
+   │   │   │       │   └── lyrics.lrc    # 歌词文件
    │   │   │       └── ...
    │   │   ├── play_list1/               # 用户创建的歌单1
    │   │   │   └── ...                   # 结构同default
