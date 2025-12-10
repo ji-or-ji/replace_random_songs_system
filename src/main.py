@@ -24,9 +24,10 @@ def initialize_system():
     main_data_dirs = [
         'main_data',
         'main_data/global',
-        'main_data/global/history',
-        'main_data/play_list_1',
-        'main_data/play_list_1/songs'
+        'main_data/playlists',
+        'main_data/playlists/default',
+        'main_data/playlists/default/music_files',
+        'main_data/templates'
     ]
     
     for dir_path in main_data_dirs:
@@ -35,7 +36,7 @@ def initialize_system():
             print(f"📁 创建目录: {dir_path}")
     
     # 检查并创建全局配置文件
-    global_config_path = 'main_data/global/global_config.json'
+    global_config_path = 'main_data/global/global_config.yaml'
     if not os.path.exists(global_config_path):
         global_config = {
             "system_version": "1.0.0",
@@ -46,82 +47,94 @@ def initialize_system():
             json.dump(global_config, f, ensure_ascii=False, indent=2)
         print("✅ 创建全局配置文件")
     
-    # 检查并创建歌单配置文件
-    playlist_config_path = 'main_data/play_list_main/config.json'
+    # 检查并请求创建歌单
+    playlist_config_path = 'main_data/default/meta.yaml'
     if not os.path.exists(playlist_config_path):
-        playlist_config = {
-            "current_playlist": "play_list_main",
-            "playlists": {
-                "play_list_main": {
-                    "name": "默认歌单",
-                    "description": "主歌单",
-                    "file_path": "main_data/play_list_main/songs_list.json",
-                    "requester_file_path": "main_data/play_list_1/requester_list.json",
-                    "history_file_path": "main_data/play_list_1/history_records.log",
-                    "created_at": datetime.datetime.now().strftime("%Y/%m/%d"),
-                    "song_count": 5,  # 更新为5首示例歌曲
-                    "duplicate_prevention": {
-                        "enabled": True,
-                        "mode": "time_window",
-                        "time_window_hours": 1,
-                        "time_window_minutes": 0,
-                        "reset_on_all_played": True,
-                        "last_reset_time": None,
-                        "played_songs": []
+        while True:
+            choice = input("似乎默认歌单的配置文件不见了...要重新创建吗？(y/N)")
+            if choice == "y":
+                playlist_config = {
+                    "current_playlist": "default",
+                    "playlists": {
+                        "default": {
+                            "name": "默认歌单",
+                            "description": "默认歌单",
+                            "file_path": "main_data/playlists/default/songs.yaml",
+                            "requester_file_path": "main_data/playlists/default/requesters.yaml",
+                            "history_file_path": "main_data/playlists/default/play_history.log",
+                            "history_operate_path": "main_data/playlists/default/operate_history.log",
+                            "created_at": datetime.datetime.now().strftime("%Y/%m/%d"),
+                            "song_count": 5,  # 更新为5首示例歌曲
+                            "duplicate_prevention": {
+                                "enabled": True,
+                                "mode": "time_window",
+                                "time_window_hours": 1,
+                                "time_window_minutes": 0,
+                                "reset_on_all_played": True,
+                                "last_reset_time": None,
+                                "played_songs": []
+                            }
+                        }
                     }
                 }
-            }
-        }
-        with open(playlist_config_path, 'w', encoding='utf-8') as f:
-            json.dump(playlist_config, f, ensure_ascii=False, indent=2)
-        print("✅ 创建歌单配置文件")
+                with open(playlist_config_path, 'w', encoding='utf-8') as f:
+                    json.dump(playlist_config, f, ensure_ascii=False, indent=2)
+                print("✅ 创建歌单配置文件")
+                break
+        
+            elif choice == "N":
+                print("已跳过创建默认歌单的配置文件")
+                break
+            else:
+                print("无效的选择")
     
     # 检查并创建歌曲列表文件
-    songs_list_path = 'main_data/play_list_1/songs_list.json'
+    songs_list_path = 'main_data/playlists/default/songs.yaml'
     if not os.path.exists(songs_list_path):
-        # 添加一些示例歌曲，让新用户第一次使用时就有可用的歌曲
-        songs_list = {
-            "songs": [
-                {
-                    "song_name": "夜曲",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=185809"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "晴天",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=186016"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "七里香",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=185923"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "稻香",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=287035"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "青花瓷",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=185951"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                }
-            ]
-        }
-        with open(songs_list_path, 'w', encoding='utf-8') as f:
-            json.dump(songs_list, f, ensure_ascii=False, indent=2)
-        print("✅ 创建歌曲列表文件（包含5首示例歌曲）")
+        while True:
+            # 添加一些示例歌曲，让新用户第一次使用时就有可用的歌曲
+            songs_list = {
+                "songs": [
+                    {
+                        "song_name": "夜曲",
+                        "artist": "周杰伦",
+                        "requested_by": "系统",
+                        "url_list": ["https://music.163.com/#/song?id=185809"],
+                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                    },
+                    {
+                        "song_name": "晴天",
+                        "artist": "周杰伦",
+                        "requested_by": "系统",
+                        "url_list": ["https://music.163.com/#/song?id=186016"],
+                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                    },
+                    {
+                        "song_name": "七里香",
+                        "artist": "周杰伦",
+                        "requested_by": "系统",
+                        "url_list": ["https://music.163.com/#/song?id=185923"],
+                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                    },
+                    {
+                        "song_name": "稻香",
+                        "artist": "周杰伦",
+                        "requested_by": "系统",
+                        "url_list": ["https://music.163.com/#/song?id=287035"],
+                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                    },
+                    {
+                        "song_name": "青花瓷",
+                        "artist": "周杰伦",
+                        "requested_by": "系统",
+                        "url_list": ["https://music.163.com/#/song?id=185951"],
+                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                    }
+                ]
+            }
+            with open(songs_list_path, 'w', encoding='utf-8') as f:
+                json.dump(songs_list, f, ensure_ascii=False, indent=2)
+            print("✅ 创建歌曲列表文件（包含5首示例歌曲）")
     
     # 检查并创建点歌人列表文件
     requester_list_path = 'main_data/play_list_1/requester_list.json'
