@@ -103,7 +103,7 @@ Random Songs 是一个功能丰富的Python随机点歌系统，支持完整的�
    │   ├── playlists/                    # 各歌单数据目录
    │   │   ├── default/                  # 默认歌单
    │   │   │   ├── meta.yaml             # 歌单元数据（名称、说明）
-   │   │   │   ├── songs.yaml            # 歌曲列表文件
+   │   │   │   ├── songs.yaml            # 歌曲列表注册文件
    │   │   │   ├── requesters.yaml       # 该歌单关联的点歌人列表
    │   │   │   ├── play_history.log      # 本歌单播放历史
    │   │   │   ├── operate_history.log   # 本歌单操作历史
