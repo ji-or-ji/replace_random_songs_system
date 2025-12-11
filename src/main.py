@@ -2,6 +2,7 @@
 
 # 导入模块
 import json
+import yaml
 import os
 import random
 import datetime
@@ -20,6 +21,7 @@ from duplicate_prevention_manager import duplicate_prevention_menu
 
 def initialize_system():
     """初始化系统，检查并创建必要的文件和目录"""
+    print("正在初始化系统...")
     
     # 创建主数据目录
     main_data_dirs = [
@@ -32,145 +34,51 @@ def initialize_system():
     
     for dir_path in main_data_dirs:
         if not os.path.exists(dir_path):
+            print("似乎主文件目录不见了...正在还原...")
             os.makedirs(dir_path, exist_ok=True)
             print(f"📁 创建目录: {dir_path}")
+            create_directory : str = "T"
+        else :
+            create_directory : str = "F"
     
     # 检查并创建全局配置文件
-    global_config_path = 'main_data/global/global_config.json'
+    global_config_path = 'main_data/global/global_config.yaml'
     if not os.path.exists(global_config_path):
+        print("似乎全局配置文件不见了...正在还原...")
         global_config = {
-            "system_version": "1.0.0",
+            "system_version": "2.0.1",
             "initialized_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "total_playlists": 1
         }
         with open(global_config_path, 'w', encoding='utf-8') as f:
-            json.dump(global_config, f, ensure_ascii=False, indent=2)
-        print("✅ 创建全局配置文件")
-    
-    # 检查并创建歌单配置文件
-    playlist_config_path = 'main_data/play_list_main/config.json'
-    if not os.path.exists(playlist_config_path):
-        playlist_config = {
-            "current_playlist": "play_list_main",
-            "playlists": {
-                "play_list_main": {
-                    "name": "默认歌单",
-                    "description": "主歌单",
-                    "file_path": "main_data/play_list_main/songs_list.json",
-                    "requester_file_path": "main_data/play_list_1/requester_list.json",
-                    "history_file_path": "main_data/play_list_1/history_records.log",
-                    "created_at": datetime.datetime.now().strftime("%Y/%m/%d"),
-                    "song_count": 5,  # 更新为5首示例歌曲
-                    "duplicate_prevention": {
-                        "enabled": True,
-                        "mode": "time_window",
-                        "time_window_hours": 1,
-                        "time_window_minutes": 0,
-                        "reset_on_all_played": True,
-                        "last_reset_time": None,
-                        "played_songs": []
-                    }
-                }
-            }
-        }
-        with open(playlist_config_path, 'w', encoding='utf-8') as f:
-            json.dump(playlist_config, f, ensure_ascii=False, indent=2)
-        print("✅ 创建歌单配置文件")
-    
-    # 检查并创建歌曲列表文件
-    songs_list_path = 'main_data/play_list_1/songs_list.json'
-    if not os.path.exists(songs_list_path):
-        # 添加一些示例歌曲，让新用户第一次使用时就有可用的歌曲
-        songs_list = {
-            "songs": [
-                {
-                    "song_name": "夜曲",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=185809"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "晴天",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=186016"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "七里香",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=185923"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "稻香",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=287035"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                },
-                {
-                    "song_name": "青花瓷",
-                    "artist": "周杰伦",
-                    "requested_by": "系统",
-                    "url_list": ["https://music.163.com/#/song?id=185951"],
-                    "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                }
-            ]
-        }
-        with open(songs_list_path, 'w', encoding='utf-8') as f:
-            json.dump(songs_list, f, ensure_ascii=False, indent=2)
-        print("✅ 创建歌曲列表文件（包含5首示例歌曲）")
-    
-    # 检查并创建点歌人列表文件
-    requester_list_path = 'main_data/play_list_1/requester_list.json'
-    if not os.path.exists(requester_list_path):
-        # 添加示例歌曲对应的点歌人
-        requester_list = ["系统"]
-        with open(requester_list_path, 'w', encoding='utf-8') as f:
-            json.dump(requester_list, f, ensure_ascii=False, indent=2)
-        print("✅ 创建点歌人列表文件（包含示例点歌人）")
-    
-    # 检查并创建历史记录文件
-    history_path = 'main_data/play_list_1/history_records.log'
-    if not os.path.exists(history_path):
-        with open(history_path, 'w', encoding='utf-8') as f:
-            f.write(f"系统初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建历史记录文件")
-    
-    # 检查并创建自动跳转配置文件
-    auto_jump_config_path = 'main_data/auto_jump_config.json'
-    if not os.path.exists(auto_jump_config_path):
-        auto_jump_config = {
-            "auto_jump_enabled": False,
-            "jump_mode": "search",
-            "custom_url": "",
-            "jump_delay": 3
-        }
-        with open(auto_jump_config_path, 'w', encoding='utf-8') as f:
-            json.dump(auto_jump_config, f, ensure_ascii=False, indent=2)
-        print("✅ 创建自动跳转配置文件")
+            yaml.dump(global_config, f, allow_unicode=True, default_flow_style=False)
+        print("✅ 创建全局配置文件\n")
+        create_global_configuration_file : str = "T"
+    else :
+        create_global_configuration_file : str = "F"
     
     # 检查并创建全局历史记录文件
     global_history_path = 'main_data/global/history/global_play_history.log'
     if not os.path.exists(global_history_path):
+        print("似乎局历史记录不见了...正在还原...")
         with open(global_history_path, 'w', encoding='utf-8') as f:
             f.write(f"全局历史记录初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建全局播放历史文件")
+        print("✅ 创建全局播放历史文件\n")
+        create_global_play_history_file : str = "T"
+    else :
+        create_global_play_history_file : str = "F"
     
     global_operate_history_path = 'main_data/global/history/global_operate_history.log'
     if not os.path.exists(global_operate_history_path):
         with open(global_operate_history_path, 'w', encoding='utf-8') as f:
             f.write(f"全局操作历史初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建全局操作历史文件")
+        print("✅ 创建全局操作历史文件\n")
+        create_global_operation_history_file : str = "T"
+    else :
+        create_global_operation_history_file : str = "F"
     
     print("🎉 系统初始化完成！")
-
-def get_random_song(songs):
-    """随机选择一首歌曲（兼容旧版本）"""
-    return get_random_song_with_prevention(songs)
+    return create_directory + create_global_configuration_file + create_global_play_history_file + create_global_operation_history_file
 
 def display_song_info(song):
     """显示歌曲信息"""
@@ -227,7 +135,6 @@ def settings_menu():
 def main():
     """主函数"""
     print("🎵 随机点歌系统 🎵")
-    print("正在初始化系统...")
     
     # 初始化系统，检查并创建必要的文件和目录
     initialize_system()
