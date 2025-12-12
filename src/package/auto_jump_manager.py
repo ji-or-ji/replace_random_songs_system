@@ -1,9 +1,9 @@
-import json
+
 import os
 import time
 import webbrowser
-from config_manager import load_auto_jump_config, save_auto_jump_config
-from history_manager import record_history
+from package.config_manager import load_auto_jump_config, save_auto_jump_config
+from package.history_manager import record_history
 
 def enable_auto_jump():
     """启用自动跳转"""

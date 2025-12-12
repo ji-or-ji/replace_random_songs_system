@@ -1,7 +1,7 @@
 import json
 import os
-from config_manager import load_playlist_config, save_playlist_config
-from history_manager import record_history
+from package.config_manager import load_playlist_config, save_playlist_config
+from package.history_manager import record_history
 
 def load_requesters(playlist_id=None):
     """加载点歌人列表文件"""

@@ -85,7 +85,7 @@ def view_history(playlist_id=None):
 def get_current_playlist_id():
     """获取当前歌单ID"""
     try:
-        from config_manager import load_playlist_config
+        from package.config_manager import load_playlist_config
         config = load_playlist_config()
         return config.get("current_playlist", "play_list_1")
     except ImportError:

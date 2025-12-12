@@ -1,7 +1,7 @@
 import json
 import random
 import datetime
-from config_manager import load_playlist_config, save_playlist_config
+from package.config_manager import load_playlist_config, save_playlist_config
 
 def load_songs(playlist_id=None):
     """加载歌曲列表文件"""

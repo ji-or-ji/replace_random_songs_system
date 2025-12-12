@@ -9,7 +9,7 @@ import sys
 # 添加src目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from main import initialize_system, get_random_song, display_song_info, settings_menu, main
+from CLI.main import initialize_system, get_random_song, display_song_info, settings_menu, main
 
 
 class TestMain(unittest.TestCase):

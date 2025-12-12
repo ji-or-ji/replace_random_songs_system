@@ -1,7 +1,7 @@
 import json
 import datetime
-from config_manager import load_playlist_config, save_playlist_config
-from history_manager import record_history
+from package.config_manager import load_playlist_config, save_playlist_config
+from package.history_manager import record_history
 
 def toggle_duplicate_prevention():
     """切换防重复功能状态"""

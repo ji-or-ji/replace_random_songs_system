@@ -1,8 +1,8 @@
 import json
-from song_manager import load_songs, save_songs, get_next_song_id, filter_valid_songs
-from requester_manager import get_requester_list
-from history_manager import record_history
-from config_manager import load_playlist_config
+from package.song_manager import load_songs, save_songs, get_next_song_id, filter_valid_songs
+from package.requester_manager import get_requester_list
+from package.history_manager import record_history
+from package.config_manager import load_playlist_config
 
 def add_song():
     """添加歌曲"""

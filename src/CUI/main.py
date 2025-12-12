@@ -1,84 +1,17 @@
 
 
 # 导入模块
-import json
-import yaml
-import os
-import random
-import datetime
-import time
-import webbrowser
 
-# 导入自定义模块
-from history_manager import record_history, view_history
-from config_manager import load_playlist_config, save_playlist_config, load_auto_jump_config, save_auto_jump_config
-from song_manager import load_songs, save_songs, filter_valid_songs, get_random_song_with_prevention, get_songs_statistics, display_statistics
-from requester_manager import requester_menu, get_requester_list
-from song_operations import song_management_menu
-from playlist_manager import playlist_menu
-from auto_jump_manager import auto_jump, auto_jump_menu
-from duplicate_prevention_manager import duplicate_prevention_menu
-
-def initialize_system():
-    """初始化系统，检查并创建必要的文件和目录"""
-    print("正在初始化系统...")
-    
-    # 创建主数据目录
-    main_data_dirs = [
-        'main_data',
-        'main_data/global',
-        'main_data/global/history',
-        'main_data/play_list_1',
-        'main_data/play_list_1/songs'
-    ]
-    
-    for dir_path in main_data_dirs:
-        if not os.path.exists(dir_path):
-            print("似乎主文件目录不见了...正在还原...")
-            os.makedirs(dir_path, exist_ok=True)
-            print(f"📁 创建目录: {dir_path}")
-            create_directory : str = "T"
-        else :
-            create_directory : str = "F"
-    
-    # 检查并创建全局配置文件
-    global_config_path = 'main_data/global/global_config.yaml'
-    if not os.path.exists(global_config_path):
-        print("似乎全局配置文件不见了...正在还原...")
-        global_config = {
-            "system_version": "2.0.1",
-            "initialized_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "total_playlists": 1
-        }
-        with open(global_config_path, 'w', encoding='utf-8') as f:
-            yaml.dump(global_config, f, allow_unicode=True, default_flow_style=False)
-        print("✅ 创建全局配置文件\n")
-        create_global_configuration_file : str = "T"
-    else :
-        create_global_configuration_file : str = "F"
-    
-    # 检查并创建全局历史记录文件
-    global_history_path = 'main_data/global/history/global_play_history.log'
-    if not os.path.exists(global_history_path):
-        print("似乎局历史记录不见了...正在还原...")
-        with open(global_history_path, 'w', encoding='utf-8') as f:
-            f.write(f"全局历史记录初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建全局播放历史文件\n")
-        create_global_play_history_file : str = "T"
-    else :
-        create_global_play_history_file : str = "F"
-    
-    global_operate_history_path = 'main_data/global/history/global_operate_history.log'
-    if not os.path.exists(global_operate_history_path):
-        with open(global_operate_history_path, 'w', encoding='utf-8') as f:
-            f.write(f"全局操作历史初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建全局操作历史文件\n")
-        create_global_operation_history_file : str = "T"
-    else :
-        create_global_operation_history_file : str = "F"
-    
-    print("🎉 系统初始化完成！")
-    return create_directory + create_global_configuration_file + create_global_play_history_file + create_global_operation_history_file
+# 导入自定义包
+from package.initialize import initialize_system                 # 初始化函数
+from package.history_manager import record_history, view_history
+from package.config_manager import load_playlist_config, save_playlist_config, load_auto_jump_config, save_auto_jump_config
+from package.song_manager import load_songs, save_songs, filter_valid_songs, get_random_song_with_prevention, get_songs_statistics, display_statistics
+from package.requester_manager import requester_menu, get_requester_list
+from package.song_operations import song_management_menu
+from package.playlist_manager import playlist_menu
+from package.auto_jump_manager import auto_jump, auto_jump_menu
+from package.duplicate_prevention_manager import duplicate_prevention_menu
 
 def display_song_info(song):
     """显示歌曲信息"""
@@ -134,7 +67,19 @@ def settings_menu():
 
 def main():
     """主函数"""
-    print("🎵 随机点歌系统 🎵")
+    print("    __                           __                _ __  __       ________  ______")
+    print("   / /   ____ ___  ______  _____/ /_     _      __(_) /_/ /_     / ____/ / / /  _/")
+    print("  / /   / __ `/ / / / __ \\/ ___/ __ \\   | | /| / / / __/ __ \\   / /   / / / // /  ")
+    print(" / /___/ /_/ / /_/ / / / / /__/ / / /   | |/ |/ / / /_/ / / /  / /___/ /_/ // /   ")
+    print("/_____/\\__,_/\\__,_/_/ /_/\\___/_/ /_/    |__/|__/_/\\__/_/ /_/   \\____/\\____/___/   ")
+    print("                                                                                  ")
+    print("    ____                  __                   _____                           _____            __               ")
+    print("   / __ \\____ _____  ____/ /___  ____ ___     / ___/____  ____  ____ ______   / ___/__  _______/ /____  ____ ___ ")
+    print("  / /_/ / __ `/ __ \\/ __  / __ \\/ __ `__ \\    \\__ \\/ __ \\/ __ \\/ __ `/ ___/   \\__ \\/ / / / ___/ __/ _ \\/ __ `__ \\")
+    print(" / _, _/ /_/ / / / / /_/ / /_/ / / / / / /   ___/ / /_/ / / / / /_/ (__  )   ___/ / /_/ (__  ) /_/  __/ / / / / /")
+    print("/_/ |_|\\__,_/_/ /_/\\__,_/\\____/_/ /_/ /_/   /____/\\____/_/ /_/\\__, /____/   /____/\\__, /____/\\__/\\___/_/ /_/ /_/ ")
+    print("                                                             /____/              /____/                          ")
+
     
     # 初始化系统，检查并创建必要的文件和目录
     initialize_system()

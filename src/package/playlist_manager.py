@@ -1,8 +1,8 @@
 import json
 import os
 import datetime
-from config_manager import load_playlist_config, save_playlist_config
-from history_manager import record_history
+from package.config_manager import load_playlist_config, save_playlist_config
+from package.history_manager import record_history
 
 def create_playlist():
     """创建空白歌单"""
