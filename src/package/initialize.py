@@ -66,7 +66,10 @@ def initialize_system():
         create_global_operation_history_file : str = "F"
     
     print("🎉 系统初始化完成！")
-    return (create_directory , create_global_configuration_file , create_global_play_history_file , create_global_operation_history_file)
+    return (create_directory ,
+            create_global_configuration_file ,
+            create_global_play_history_file ,
+            create_global_operation_history_file)
 
 
 if __name__ == "__main__" :

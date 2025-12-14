@@ -1,29 +1,20 @@
-import json
+import yaml
 import datetime
 
 def load_playlist_config():
     """加载歌单配置文件"""
-    config_paths = [
-        'main_data/play_list_1/play_lists_config.json',
-        './main_data/play_list_1/play_lists_config.json',
-        '../main_data/play_list_1/play_lists_config.json',
-        'playlists_config.json',
-        '../playlists_config.json'
-    ]
-    
-    for config_path in config_paths:
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                return config
-        except FileNotFoundError:
-            continue
-        except json.JSONDecodeError:
-            print(f'歌单配置文件已损坏: {config_path}')
-            # 创建默认配置
-            return {
-                "current_playlist": "default",
-                "playlists": {
+    try:
+        with open('mian_data/global/global_config.yaml', 'r') as f:
+            config = yaml.safe_load(f)
+            return config
+    except FileNotFoundError:
+        pass
+    except yaml.YAMLError:
+        print(f'配置文件已损坏。原期望路径: mian_data/global/global_config.yaml')
+        # 创建默认配置
+        return {
+            "current_playlist": "default",
+            "playlists": {
                     "default": {
                         "name": "默认歌单",
                         "description": "主歌单",
