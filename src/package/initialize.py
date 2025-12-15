@@ -5,30 +5,41 @@ import yaml
 import os
 import datetime
 
-
-def initialize_system():
-    """初始化系统，检查并创建必要的文件和目录"""
-    print("正在初始化系统...")
-    
+def create_data_catalog() :
     # 创建主数据目录
     main_data_dirs = [
         'main_data',
         'main_data/global',
         'main_data/global/history',
-        'main_data/play_list_1',
-        'main_data/play_list_1/songs'
+        'main_data/playlists',
+        'main_data/templates'
     ]
+    # 初始化创建状态列表
+    created_status = ['F', 'F', 'F', 'F', 'F']
+    any_created = False
     
-    # 初始化变量
-    create_directory : str = "F"
-    
-    for dir_path in main_data_dirs:
+    # 创建目录并记录状态
+    for i, dir_path in enumerate(main_data_dirs):
         if not os.path.exists(dir_path):
             print("似乎主文件目录不见了...正在还原...")
             os.makedirs(dir_path, exist_ok=True)
             print(f"📁 创建目录: {dir_path}")
-            create_directory = "T"
+            created_status[i] = 'T'
+            any_created = True
     
+    # 根据是否创建了至少一个目录决定返回值
+    if any_created:
+        return tuple(created_status)
+    else:
+        return None
+
+def initialize_system():
+    """初始化系统，检查并创建必要的文件和目录"""
+    print("正在初始化系统...")
+    
+    # 检查并创建主数据目录
+    create_directory = create_data_catalog()
+
     # 检查并创建全局配置文件
     global_config_path = 'main_data/global/global_config.yaml'
     if not os.path.exists(global_config_path):
