@@ -91,4 +91,51 @@ public static class PlaylistService
         YamlStore.Save(AppPaths.RequestersFile(playlistId), new RequesterFile { Requesters = requesters });
         return true;
     }
+
+    /// <summary>重命名歌单（只改显示名/描述，ID 与目录不变）。</summary>
+    public static bool RenamePlaylist(string playlistId, string newName, string newDescription = null)
+    {
+        var cfg = ConfigService.Load();
+        if (!cfg.Playlists.TryGetValue(playlistId, out var entry) || entry == null)
+        {
+            return false;
+        }
+        entry.Name = newName;
+        if (newDescription != null)
+        {
+            entry.Description = newDescription;
+        }
+        ConfigService.Save(cfg);
+        return true;
+    }
+
+    /// <summary>删除歌单（含数据目录）。不能删最后一个，也不能删当前歌单。</summary>
+    public static (bool Ok, string Message) DeletePlaylist(string playlistId)
+    {
+        var cfg = ConfigService.Load();
+        if (!cfg.Playlists.ContainsKey(playlistId))
+        {
+            return (false, "歌单不存在");
+        }
+        if (cfg.Playlists.Count <= 1)
+        {
+            return (false, "至少需要保留一个歌单");
+        }
+        if (cfg.CurrentPlaylist == playlistId)
+        {
+            return (false, "不能删除当前正在使用的歌单，请先切换");
+        }
+
+        cfg.Playlists.Remove(playlistId);
+        ConfigService.Save(cfg);
+        try
+        {
+            Directory.Delete(AppPaths.PlaylistDir(playlistId), recursive: true);
+        }
+        catch
+        {
+            // 目录删除失败不影响配置移除
+        }
+        return (true, "已删除");
+    }
 }

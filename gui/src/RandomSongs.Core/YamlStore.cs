@@ -61,4 +61,32 @@ public static class YamlStore
         }
         File.AppendAllText(path, line.TrimEnd('\n') + Environment.NewLine, new UTF8Encoding(false));
     }
+
+    /// <summary>读取文本文件所有非空行（可选限条数 / 倒序）。</summary>
+    public static List<string> ReadLines(string path, int limit = 200, bool newestFirst = false)
+    {
+        if (string.IsNullOrEmpty(path) || !File.Exists(path))
+        {
+            return new List<string>();
+        }
+        try
+        {
+            var lines = File.ReadAllLines(path, Encoding.UTF8)
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+            if (newestFirst)
+            {
+                lines.Reverse();
+            }
+            if (limit > 0 && lines.Count > limit)
+            {
+                lines = lines.Take(limit).ToList();
+            }
+            return lines;
+        }
+        catch (IOException)
+        {
+            return new List<string>();
+        }
+    }
 }

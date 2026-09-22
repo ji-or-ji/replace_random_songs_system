@@ -1,5 +1,13 @@
 namespace RandomSongs.Core;
 
+public enum HistoryScope
+{
+    PlaylistPlay,
+    PlaylistOperate,
+    GlobalPlay,
+    GlobalOperate,
+}
+
 /// <summary>操作历史与播放历史，写入歌单级和全局日志。</summary>
 public static class HistoryService
 {
@@ -44,4 +52,18 @@ public static class HistoryService
 
     public static int GetPlayCount()
         => (YamlStore.Load<SystemStats>(AppPaths.SystemStatsFile) ?? new SystemStats()).TotalPlays;
+
+    /// <summary>读取指定范围的历史记录（最新在前）。</summary>
+    public static List<string> ReadHistory(HistoryScope scope, string playlistId = null, int limit = 200)
+    {
+        var pid = string.IsNullOrEmpty(playlistId) ? ConfigService.GetCurrentPlaylistId() : playlistId;
+        var path = scope switch
+        {
+            HistoryScope.PlaylistPlay => string.IsNullOrEmpty(pid) ? null : AppPaths.PlayHistoryFile(pid),
+            HistoryScope.PlaylistOperate => string.IsNullOrEmpty(pid) ? null : AppPaths.OperateHistoryFile(pid),
+            HistoryScope.GlobalPlay => AppPaths.GlobalPlayHistoryFile,
+            _ => AppPaths.GlobalOperateHistoryFile,
+        };
+        return YamlStore.ReadLines(path, limit, newestFirst: true);
+    }
 }

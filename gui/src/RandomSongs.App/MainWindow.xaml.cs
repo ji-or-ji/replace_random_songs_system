@@ -55,6 +55,8 @@ public sealed partial class MainWindow : Window
 
         var page = item.Tag?.ToString() switch
         {
+            "stats" => typeof(StatsPage),
+            "playlists" => typeof(PlaylistsPage),
             "songs" => typeof(SongsPage),
             "requesters" => typeof(RequestersPage),
             "settings" => typeof(SettingsPage),

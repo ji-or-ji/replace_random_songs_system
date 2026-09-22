@@ -20,6 +20,8 @@
                         SelectionChanged="Nav_SelectionChanged">
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="NavPick" Content="随机点歌" Tag="pick" />
+                <NavigationViewItem Content="统计信息" Tag="stats" />
+                <NavigationViewItem Content="歌单管理" Tag="playlists" />
                 <NavigationViewItem Content="歌曲管理" Tag="songs" />
                 <NavigationViewItem Content="点歌人" Tag="requesters" />
                 <NavigationViewItem Content="设置" Tag="settings" />

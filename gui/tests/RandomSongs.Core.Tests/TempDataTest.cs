@@ -8,7 +8,7 @@ public abstract class TempDataTest : IDisposable
     protected TempDataTest()
     {
         TempDir = Path.Combine(Path.GetTempPath(), "rss_test_" + Guid.NewGuid().ToString("N"));
-        AppPaths.DataRoot = TempDir;
+        AppPaths.DataRoot = Path.Combine(TempDir, "main_data");
         AppInitializer.Initialize(quiet: true);
     }
 
