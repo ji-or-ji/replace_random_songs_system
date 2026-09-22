@@ -80,7 +80,7 @@ def _seed_default_playlist():
     return songs
 
 
-def initialize_system():
+def initialize_system(quiet=False):
     """幂等初始化：建目录、写模板、必要时创建默认歌单。"""
     for directory in (paths.MAIN_DATA_DIR, paths.GLOBAL_DIR, paths.PLAYLIST_ROOT, paths.TEMPLATE_DIR):
         paths.ensure_dir(directory)
@@ -91,7 +91,8 @@ def initialize_system():
 
     config = load_global_config()
     if not config_exists() or not config.get("playlists"):
-        print("📦 首次运行，正在创建默认歌单与示例数据...")
+        if not quiet:
+            print("📦 首次运行，正在创建默认歌单与示例数据...")
         _seed_default_playlist()
 
     if not os.path.exists(paths.SYSTEM_STATS_FILE):

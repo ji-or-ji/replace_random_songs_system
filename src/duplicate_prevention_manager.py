@@ -72,8 +72,12 @@ def _blocked_ids(records, mode):
     return {record["song_id"] for record in records}
 
 
-def pick_song(playlist_id, songs):
-    """按防重复策略从 songs 中随机挑一首。返回歌曲 dict；无可选且不允许重置时返回 None。"""
+def pick_song(playlist_id, songs, persist=True):
+    """按防重复策略从 songs 中随机挑一首。
+
+    返回歌曲 dict；无可选且不允许重置时返回 None。
+    persist=False 时不写回防重复状态（用于预览 / 静默模式）。
+    """
     valid_songs = [
         song
         for song in (songs or [])
@@ -106,20 +110,22 @@ def pick_song(playlist_id, songs):
             cfg["last_reset_time"] = _fmt(now)
             available = valid_songs
         else:
-            cfg["played_songs"] = records
-            save_prevention(playlist_id, cfg)
+            if persist:
+                cfg["played_songs"] = records
+                save_prevention(playlist_id, cfg)
             return None
 
     chosen = random.choice(available)
-    records.append(
-        {
-            "song_id": chosen.get("id"),
-            "song_name": chosen.get("song_name", ""),
-            "play_time": _fmt(now),
-        }
-    )
-    cfg["played_songs"] = records
-    save_prevention(playlist_id, cfg)
+    if persist:
+        records.append(
+            {
+                "song_id": chosen.get("id"),
+                "song_name": chosen.get("song_name", ""),
+                "play_time": _fmt(now),
+            }
+        )
+        cfg["played_songs"] = records
+        save_prevention(playlist_id, cfg)
     return chosen
 
 

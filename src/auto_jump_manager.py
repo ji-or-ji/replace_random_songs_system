@@ -68,15 +68,24 @@ def set_jump_delay():
     print(f"✅ 已设置跳转延时为 {delay} 秒")
 
 
-def auto_jump(song_info):
-    """根据配置打开网页。任何异常都不应中断点歌主流程。"""
-    config = get_auto_jump_config()
+def auto_jump(song_info, config=None, verbose=True):
+    """根据配置打开网页。任何异常都不应中断点歌主流程。
+
+    config 为空时读取全局设置；传入 dict 可覆盖本次行为（命令行参数用）。
+    verbose=False 时不向标准输出打印提示（静默模式用，保持 stdout 干净）。
+    """
+    if config is None:
+        config = get_auto_jump_config()
     if not config.get("enabled"):
         return
 
+    def say(message):
+        if verbose:
+            print(message)
+
     delay = int(config.get("delay", 3))
     if delay > 0:
-        print(f"\n⏰ 将在 {delay} 秒后自动跳转...")
+        say(f"\n⏰ 将在 {delay} 秒后自动跳转...")
         time.sleep(delay)
 
     song_url = (song_info.get("url") or "").strip()
@@ -84,10 +93,10 @@ def auto_jump(song_info):
         try:
             webbrowser.open(song_url)
             record_operation("自动跳转", f"歌曲URL: {song_url}")
-            print(f"✅ 已打开歌曲链接: {song_url}")
+            say(f"✅ 已打开歌曲链接: {song_url}")
             return
         except Exception as exc:  # noqa: BLE001 - 不希望跳转失败影响主流程
-            print(f"⚠️ 打开歌曲链接失败: {exc}")
+            say(f"⚠️ 打开歌曲链接失败: {exc}")
 
     if config.get("mode") == "search":
         song_name = (song_info.get("song_name") or "").strip()
@@ -100,16 +109,16 @@ def auto_jump(song_info):
             try:
                 webbrowser.open(url)
                 record_operation("自动跳转", f"B站搜索: {query}")
-                print(f"✅ 已打开 B 站搜索: {query}")
+                say(f"✅ 已打开 B 站搜索: {query}")
             except Exception as exc:  # noqa: BLE001
-                print(f"⚠️ 打开搜索页失败: {exc}")
+                say(f"⚠️ 打开搜索页失败: {exc}")
     elif config.get("mode") == "custom" and config.get("custom_url"):
         try:
             webbrowser.open(config["custom_url"])
             record_operation("自动跳转", f"自定义URL: {config['custom_url']}")
-            print(f"✅ 已打开自定义 URL: {config['custom_url']}")
+            say(f"✅ 已打开自定义 URL: {config['custom_url']}")
         except Exception as exc:  # noqa: BLE001
-            print(f"⚠️ 打开自定义 URL 失败: {exc}")
+            say(f"⚠️ 打开自定义 URL 失败: {exc}")
 
 
 def view_auto_jump_settings():
