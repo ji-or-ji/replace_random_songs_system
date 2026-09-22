@@ -1,12 +1,36 @@
 """
 自动网页跳转：随机点歌后自动打开歌曲链接或搜索页。
+
+跳转优先级：
+  1. 歌曲自带链接（url）—— 除非开启了 prefer_search（优先搜索）；
+  2. 按模式：
+     - search：用「歌名 歌手」在 B 站搜索；
+     - custom：打开自定义 URL，支持占位符 {query} / {song} / {artist}。
 """
 
 import time
 import webbrowser
+from urllib.parse import quote
 
 from config_manager import get_auto_jump_config, save_auto_jump_config
 from history_manager import record_operation
+
+
+def expand_url(template, song_info):
+    """展开自定义 URL 中的占位符：{query}/{song}/{artist}（自动 URL 编码）。"""
+    if not template:
+        return template
+    song = (song_info.get("song_name") or "").strip()
+    artist = (song_info.get("artist") or "").strip()
+    query = f"{song} {artist}".strip()
+    url = template
+    for key, value in (
+        ("{query}", quote(query)),
+        ("{song}", quote(song)),
+        ("{artist}", quote(artist)),
+    ):
+        url = url.replace(key, value)
+    return url
 
 
 def _update(**fields):
@@ -28,18 +52,31 @@ def disable_auto_jump():
     print("✅ 已关闭自动跳转")
 
 
+def toggle_prefer_search():
+    config = get_auto_jump_config()
+    config["prefer_search"] = not config.get("prefer_search", False)
+    save_auto_jump_config(config)
+    if config["prefer_search"]:
+        record_operation("切换优先搜索", "状态: 开启")
+        print("✅ 已开启「优先搜索」：忽略歌曲自带链接，一律按模式跳转")
+    else:
+        record_operation("切换优先搜索", "状态: 关闭")
+        print("✅ 已关闭「优先搜索」：有自带链接时优先打开链接")
+
+
 def set_jump_mode():
     print("\n🌐 跳转模式设置")
     print("=" * 30)
     print("1. 🔍 搜索跳转（用歌名在 B 站搜索）")
-    print("2. 🔗 自定义 URL")
+    print("2. 🔗 自定义 URL（支持 {query}/{song}/{artist} 占位符）")
     choice = input("请选择跳转模式: ").strip()
     if choice == "1":
         _update(mode="search")
         record_operation("设置跳转模式", "搜索跳转模式")
         print("✅ 已设为搜索跳转模式")
     elif choice == "2":
-        custom_url = input("请输入自定义 URL（如 https://www.bilibili.com）: ").strip()
+        print("示例: https://search.bilibili.com/all?keyword={query}")
+        custom_url = input("请输入自定义 URL（可含占位符）: ").strip()
         if not custom_url:
             print("❌ URL 不能为空")
             return
@@ -89,7 +126,10 @@ def auto_jump(song_info, config=None, verbose=True):
         time.sleep(delay)
 
     song_url = (song_info.get("url") or "").strip()
-    if song_url:
+    prefer_search = bool(config.get("prefer_search"))
+
+    # 1. 歌曲自带链接优先（除非开启「优先搜索」）
+    if song_url and not prefer_search:
         try:
             webbrowser.open(song_url)
             record_operation("自动跳转", f"歌曲URL: {song_url}")
@@ -98,12 +138,12 @@ def auto_jump(song_info, config=None, verbose=True):
         except Exception as exc:  # noqa: BLE001 - 不希望跳转失败影响主流程
             say(f"⚠️ 打开歌曲链接失败: {exc}")
 
-    if config.get("mode") == "search":
+    # 2. 按模式跳转
+    mode = config.get("mode")
+    if mode == "search":
         song_name = (song_info.get("song_name") or "").strip()
         artist = (song_info.get("artist") or "").strip()
         if song_name:
-            from urllib.parse import quote
-
             query = f"{song_name} {artist}".strip()
             url = f"https://search.bilibili.com/all?keyword={quote(query)}"
             try:
@@ -112,23 +152,28 @@ def auto_jump(song_info, config=None, verbose=True):
                 say(f"✅ 已打开 B 站搜索: {query}")
             except Exception as exc:  # noqa: BLE001
                 say(f"⚠️ 打开搜索页失败: {exc}")
-    elif config.get("mode") == "custom" and config.get("custom_url"):
+    elif mode == "custom" and config.get("custom_url"):
+        url = expand_url(config["custom_url"], song_info)
         try:
-            webbrowser.open(config["custom_url"])
-            record_operation("自动跳转", f"自定义URL: {config['custom_url']}")
-            say(f"✅ 已打开自定义 URL: {config['custom_url']}")
+            webbrowser.open(url)
+            record_operation("自动跳转", f"自定义URL: {url}")
+            say(f"✅ 已打开自定义 URL: {url}")
         except Exception as exc:  # noqa: BLE001
             say(f"⚠️ 打开自定义 URL 失败: {exc}")
 
 
 def view_auto_jump_settings():
     config = get_auto_jump_config()
-    mode = "🔍 搜索跳转" if config.get("mode") == "search" else f"🔗 自定义 URL: {config.get('custom_url')}"
+    if config.get("mode") == "search":
+        mode_text = "🔍 搜索跳转（B 站搜索「歌名 歌手」）"
+    else:
+        mode_text = f"🔗 自定义 URL: {config.get('custom_url')}"
     print("\n🌐 自动网页跳转设置")
     print("=" * 40)
     print(f"当前状态: {'✅ 启用' if config.get('enabled') else '❌ 关闭'}")
-    print(f"跳转模式: {mode}")
+    print(f"跳转模式: {mode_text}")
     print(f"跳转延时: {config.get('delay', 3)} 秒")
+    print(f"优先搜索: {'✅ 开（忽略歌曲自带链接）' if config.get('prefer_search') else '❌ 关（有链接先开链接）'}")
     print("=" * 40)
 
 
@@ -136,14 +181,16 @@ def auto_jump_menu():
     while True:
         config = get_auto_jump_config()
         state = "✅ 启用" if config.get("enabled") else "❌ 关闭"
-        print(f"\n🌐 自动网页跳转设置（当前状态: {state}）")
+        prefer = "开" if config.get("prefer_search") else "关"
+        print(f"\n🌐 自动网页跳转设置（当前状态: {state}，优先搜索: {prefer}）")
         print("=" * 40)
         print("1. 启用自动跳转")
         print("2. 关闭自动跳转")
         print("3. 跳转模式设置")
         print("4. 设置跳转延时")
-        print("5. 查看当前设置")
-        print("6. 返回设置菜单")
+        print("5. 切换「优先搜索」（忽略歌曲自带链接）")
+        print("6. 查看当前设置")
+        print("7. 返回设置菜单")
         choice = input("请选择操作: ").strip()
         if choice == "1":
             enable_auto_jump()
@@ -154,8 +201,10 @@ def auto_jump_menu():
         elif choice == "4":
             set_jump_delay()
         elif choice == "5":
-            view_auto_jump_settings()
+            toggle_prefer_search()
         elif choice == "6":
+            view_auto_jump_settings()
+        elif choice == "7":
             break
         else:
             print("❌ 无效的选择，请重新输入")
