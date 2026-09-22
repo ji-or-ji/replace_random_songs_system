@@ -1,6 +1,5 @@
 @echo off
-rem 鍚姩闅忔満鐐规瓕绯荤粺锛堝弻鍑诲嵆鍙繍琛岋級
-chcp 65001 >nul
+rem 启动随机点歌系统（双击即可运行）
 cd /d "%~dp0"
 python run.py
 if errorlevel 1 pause
