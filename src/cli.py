@@ -33,6 +33,8 @@ def build_parser():
             "  python run.py --json               静默抽一首并以 JSON 输出\n"
             "  python run.py -p 默认歌单 -n 3      从指定歌单抽 3 首\n"
             "  python run.py --jump --jump-delay 2  抽完 2 秒后打开网页\n"
+            '  python run.py --jump --prefer-search  忽略歌曲链接，一律走搜索/自定义\n'
+            '  python run.py --jump --url "https://search.bilibili.com/all?keyword={query}"  跳 B 站搜歌\n'
             "  python run.py --no-save            预览，不写记录/不改防重复状态\n"
             "  python run.py --gui                打开交互式主菜单\n"
         ),
@@ -51,8 +53,11 @@ def build_parser():
     onoff.add_argument("--jump", action="store_true", help="本次强制开启自动跳转")
     onoff.add_argument("--no-jump", action="store_true", help="本次不自动跳转")
     jump.add_argument("--jump-mode", choices=["search", "custom"], help="覆盖跳转模式")
-    jump.add_argument("--url", metavar="URL", help="自定义跳转 URL（隐含 custom 模式）")
+    jump.add_argument("--url", metavar="URL", help="自定义跳转 URL（隐含 custom 模式，支持 {query}/{song}/{artist} 占位符）")
     jump.add_argument("--jump-delay", type=int, metavar="秒", help="覆盖跳转延时")
+    prefer = jump.add_mutually_exclusive_group()
+    prefer.add_argument("--prefer-search", action="store_true", help="忽略歌曲自带链接，一律走模式（搜索/自定义）")
+    prefer.add_argument("--no-prefer-search", action="store_true", help="有自带链接时优先打开链接（默认）")
 
     record = parser.add_argument_group("记录相关")
     record.add_argument("--no-save", action="store_true", help="不写播放记录、不更新防重复状态")
@@ -120,6 +125,10 @@ def _build_jump_config(args):
         config["custom_url"] = args.url
     if args.jump_delay is not None:
         config["delay"] = max(0, args.jump_delay)
+    if getattr(args, "prefer_search", False):
+        config["prefer_search"] = True
+    if getattr(args, "no_prefer_search", False):
+        config["prefer_search"] = False
     if config.get("mode") == "custom" and not config.get("custom_url"):
         config["enabled"] = False
     return config

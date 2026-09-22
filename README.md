@@ -105,8 +105,9 @@ python run.py
 | `-n, --count <N>` | 抽取数量，默认 1 |
 | `--jump` / `--no-jump` | 本次强制开启 / 关闭自动跳转 |
 | `--jump-mode search\|custom` | 覆盖跳转模式 |
-| `--url <URL>` | 自定义跳转地址（隐含 custom 模式） |
+| `--url <URL>` | 自定义跳转地址（隐含 custom 模式，支持 `{query}`/`{song}`/`{artist}` 占位符） |
 | `--jump-delay <秒>` | 覆盖跳转延时 |
+| `--prefer-search` / `--no-prefer-search` | 忽略歌曲自带链接、一律走模式 / 有链接时优先开链接（默认） |
 | `--no-save` | 不写播放记录、不改防重复状态（预览用） |
 | `--reset-before` | 抽歌前先重置防重复记录 |
 | `--json` | 以 JSON 输出结果 |
@@ -149,6 +150,18 @@ python run.py
 python "完整路径\run.py" --silent --no-jump --json
 ```
 
+想让它直接去 B 站搜这首歌（不依赖歌曲自带链接，避开 QQ 音乐登录态）：
+
+```bat
+python "完整路径\run.py" --jump --prefer-search --jump-mode search --jump-delay 0
+```
+
+想让它打开一个固定地址（也可是带占位符的搜索地址）：
+
+```bat
+python "完整路径\run.py" --jump --url "https://search.bilibili.com/all?keyword={query}"
+```
+
 > 说明：静默模式会按**当前配置**决定是否自动跳转。若不想在联动时打开浏览器，加 `--no-jump`；
 > 想固定跳某个地址，用 `--url <URL>`。静默模式下跳转相关的提示不会写入标准输出，
 > **stdout 只有抽歌结果本身**，可直接被联动工具解析。
@@ -185,6 +198,28 @@ python "完整路径\run.py" --silent --no-jump --json
 支持：从外部文件导入、从 QQ 音乐歌单导入、创建空白歌单、删除、切换、查看。
 外部文件支持 `.yaml / .yml / .json`（含 `songs` 列表）以及 `.txt`（每行 `歌名 - 歌手`）。
 
+## 自动跳转机制
+
+随机点歌后是否打开网页、打开什么，按以下优先级：
+
+1. **歌曲自带链接**（`url`）→ 直接打开；**除非**开启了「优先搜索」；
+2. 没有可用链接、或开启了「优先搜索」时，按**跳转模式**：
+   - **搜索跳转**：用「歌名 歌手」打开 B 站搜索 `https://search.bilibili.com/all?keyword=...`；
+   - **自定义 URL**：打开你填的地址，地址里可用占位符：
+
+     | 占位符 | 展开为 |
+     | --- | --- |
+     | `{query}` | `歌名 歌手` |
+     | `{song}` | `歌名` |
+     | `{artist}` | `歌手` |
+
+     例如 `https://search.bilibili.com/all?keyword={query}` 就相当于「自定义模式下的 B 站搜索」。
+
+**为什么需要「优先搜索」**：QQ 音乐歌单导入的歌曲都自带 `y.qq.com` 链接，而 QQ 音乐在很多场景需要登录态。
+开启「优先搜索」后，程序会忽略这些链接、直接用 B 站搜索，避免跳到一个打不开的页面。
+
+在「设置 → 自动网页跳转设置」里可以开关自动跳转、切换模式、设置延时、开关「优先搜索」。
+
 ## 数据格式（YAML）
 
 ### 全局配置 `main_data/global/global_config.yaml`
@@ -196,8 +231,9 @@ current_playlist: default
 auto_jump:
   enabled: false
   mode: search          # search | custom
-  custom_url: ''
+  custom_url: ''        # custom 模式地址，支持 {query}/{song}/{artist}
   delay: 3
+  prefer_search: false  # true = 忽略歌曲自带链接，一律走模式
 qq_sync:
   enabled: true         # QQ 同步总开关
   playlist_id: ''       # QQ 歌单分享链接或 ID

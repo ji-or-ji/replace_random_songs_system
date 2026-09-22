@@ -19,6 +19,7 @@ DEFAULT_AUTO_JUMP = {
     "mode": "search",  # search | custom
     "custom_url": "",
     "delay": 3,
+    "prefer_search": False,  # True = 忽略歌曲自带链接，一律走模式（搜索/自定义）
 }
 
 DEFAULT_QQ_SYNC = {
