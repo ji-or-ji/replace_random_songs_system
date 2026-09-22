@@ -38,6 +38,29 @@ public static class YamlStore
         }
     }
 
+    /// <summary>读取顶层为列表的 YAML（失败返回 null）。</summary>
+    public static List<T> LoadList<T>(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+        try
+        {
+            var text = File.ReadAllText(path, Encoding.UTF8);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+            return Deserializer.Deserialize<List<T>>(text);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[警告] 读取 YAML 列表失败: {path} ({ex.Message})");
+            return null;
+        }
+    }
+
     public static void Save<T>(string path, T value)
     {
         var dir = Path.GetDirectoryName(path);

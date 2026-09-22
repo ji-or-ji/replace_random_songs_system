@@ -40,6 +40,8 @@
 
         <StackPanel Grid.Row="3" Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="从文件导入" Click="ImportFile_Click" />
+                <Button Content="从 QQ 歌单导入" Click="ImportQq_Click" />
                 <Button Content="备份本歌单" Click="BackupOne_Click" />
                 <Button Content="备份全部" Click="BackupAll_Click" />
             </StackPanel>

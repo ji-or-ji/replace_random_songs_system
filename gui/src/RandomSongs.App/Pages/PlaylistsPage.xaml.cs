@@ -186,6 +186,127 @@ public sealed partial class PlaylistsPage : Page
         }
     }
 
+    private async void ImportFile_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new Windows.Storage.Pickers.FileOpenPicker();
+        if (App.Instance is not null)
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Instance);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        }
+        picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+        foreach (var ext in new[] { ".yaml", ".yml", ".json", ".txt" })
+        {
+            picker.FileTypeFilter.Add(ext);
+        }
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        var nameBox = new TextBox
+        {
+            Header = "新歌单名称",
+            Text = System.IO.Path.GetFileNameWithoutExtension(file.Name),
+            Width = 340,
+        };
+        var mergeCheck = new CheckBox { Content = "合并进当前歌单（不勾选则新建歌单）" };
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(nameBox);
+        panel.Children.Add(mergeCheck);
+
+        var dialog = new ContentDialog
+        {
+            Title = "从文件导入",
+            Content = panel,
+            PrimaryButtonText = "导入",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        try
+        {
+            if (mergeCheck.IsChecked == true)
+            {
+                var target = CurrentId;
+                if (string.IsNullOrEmpty(target))
+                {
+                    BackupInfo.Text = "没有当前歌单可合并";
+                    return;
+                }
+                var added = ImportService.MergeIntoPlaylist(file.Path, target);
+                HistoryService.RecordOperation("导入歌单", $"文件: {file.Name}, 合并新增: {added}", playlistId: target);
+                BackupInfo.Text = $"已合并进当前歌单：新增 {added} 首";
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(nameBox.Text))
+                {
+                    BackupInfo.Text = "歌单名称不能为空";
+                    return;
+                }
+                var (playlistId, count) = ImportService.ImportAsNewPlaylist(file.Path, nameBox.Text.Trim());
+                HistoryService.RecordOperation("导入歌单", $"文件: {file.Name}, 歌曲数: {count}", playlistId: playlistId);
+                BackupInfo.Text = $"已导入为新歌单：{count} 首";
+                Load();
+            }
+        }
+        catch (Exception ex)
+        {
+            BackupInfo.Text = $"导入失败：{ex.Message}";
+        }
+    }
+
+    private async void ImportQq_Click(object sender, RoutedEventArgs e)
+    {
+        var idBox = new TextBox { Header = "QQ 歌单 ID 或分享链接", Width = 360 };
+        var nameBox = new TextBox { Header = "新歌单名称", Text = "QQ歌单", Width = 360 };
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(idBox);
+        panel.Children.Add(nameBox);
+
+        var dialog = new ContentDialog
+        {
+            Title = "从 QQ 歌单导入",
+            Content = panel,
+            PrimaryButtonText = "导入",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(idBox.Text))
+        {
+            BackupInfo.Text = "请填写 QQ 歌单 ID 或链接";
+            return;
+        }
+
+        BackupInfo.Text = "正在拉取...";
+        try
+        {
+            var (playlistId, count) = await QqPlaylistService.ImportAsync(
+                idBox.Text.Trim(),
+                newPlaylistName: string.IsNullOrWhiteSpace(nameBox.Text) ? null : nameBox.Text.Trim());
+            var name = ConfigService.GetPlaylist(playlistId)?.Name ?? playlistId;
+            BackupInfo.Text = $"已导入为新歌单「{name}」：{count} 首";
+            Load();
+        }
+        catch (Exception ex)
+        {
+            BackupInfo.Text = $"导入失败：{ex.Message}";
+        }
+    }
+
     private async Task ShowMessage(string message)
     {
         var dialog = new ContentDialog
