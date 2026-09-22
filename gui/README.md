@@ -19,10 +19,11 @@ gui/
 │   │   ├── Models.cs              # 与 Python 版字段一一对应（YamlMember 显式指定）
 │   │   ├── AppPaths.cs            # 统一路径解析
 │   │   ├── YamlStore.cs           # 原子读写 YAML
-│   │   └── Services/              # Config / Song / Playlist / Prevention / History / AutoJump / AppInitializer
+│   │   └── Services/              # Config / Song / Playlist / Prevention / History / AutoJump / QqPlaylist / AppInitializer
 │   └── RandomSongs.App/           # WinUI 3 界面
 │       ├── App.xaml(.cs)
-│       └── MainWindow.xaml(.cs)
+│       ├── MainWindow.xaml(.cs)   # NavigationView 导航
+│       └── Pages/                 # PickPage / SongsPage / RequestersPage / SettingsPage
 └── tests/
     └── RandomSongs.Core.Tests/    # Core 单元测试（xunit）
 ```
@@ -52,24 +53,26 @@ src\RandomSongs.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\RandomSongs
 
 要与命令行版/ClassIsland 共用数据，把 `RANDOM_SONGS_DATA` 指向项目根目录下的 `main_data` 即可。
 
-## 当前进度（MVP-1）
+## 当前进度（MVP-2）
+
+界面为 NavigationView + 四个页面。
 
 已实现：
 
-- 歌单列表与切换（下拉框）
-- 当前歌单的歌曲列表
-- 随机点歌（复用与 Python 一致的防重复逻辑：时间窗口 / 整轮不重复、避免连播同一首）
-- 结果卡片（歌名 / 歌手 / 点歌人 / 链接）
-- 打开链接；按 `auto_jump` 配置自动跳转（含 `prefer_search` 与 `{query}` 占位符）
+- **随机点歌**：歌单切换、当前歌单歌曲列表、随机点歌、防重复、结果卡片、打开链接、按配置自动跳转
+- **歌曲管理**：添加 / 编辑 / 删除歌曲
+- **点歌人**：添加 / 重命名（同步更新歌曲引用）/ 删除
+- **设置**：防重复（开关 / 模式 / 窗口 / 自动重置 / 避免连播 / 查看与重置记录）、
+  自动跳转（开关 / 模式 / 自定义 URL / 延时 / 优先搜索）、
+  QQ 同步（开关 / 启动自动同步 / 歌单 ID / 立即同步 / 拉取为新歌单）、数据目录
 
-## 后续（MVP-2+）
+## 后续
 
-- 歌曲、点歌人增删改
-- QQ 音乐歌单拉取与自动同步
-- 设置页（防重复 / 自动跳转 / QQ 同步）
+- 歌单的新建 / 删除 / 重命名（GUI 内）
 - 历史记录查看
-- 歌单备份与恢复、导入导出
+- 从文件导入导出歌单、备份与恢复
 - 与 CUI 规划一致的更完整菜单结构
+- NuGet 离线包 + 镜像配置（照顾无外网环境）
 
 ## 互通注意
 

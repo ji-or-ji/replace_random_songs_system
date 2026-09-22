@@ -6,73 +6,25 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="16" RowSpacing="12">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-            <TextBlock Text="🎵 随机点歌" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
-            <ComboBox x:Name="PlaylistCombo" Width="220" VerticalAlignment="Center"
-                      SelectionChanged="PlaylistCombo_SelectionChanged" />
-            <Button x:Name="ReloadButton" Content="重新加载" Click="ReloadButton_Click" />
-            <TextBlock x:Name="PreventionText" VerticalAlignment="Center" Opacity="0.75" />
-        </StackPanel>
+        <InfoBar x:Name="StatusBar" Grid.Row="0" IsOpen="False" IsClosable="True" Margin="12,12,12,0" />
 
-        <Grid Grid.Row="1" ColumnSpacing="16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="380" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8">
-                <Grid Padding="8">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock x:Name="SongCountText" Grid.Row="0" Margin="4,4,4,8" Opacity="0.75" />
-                    <ListView x:Name="SongList" Grid.Row="1">
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Padding="4,6">
-                                    <TextBlock Text="{Binding SongName}" FontWeight="SemiBold"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Artist}" FontSize="12" Opacity="0.7"
-                                               TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </Grid>
-            </Border>
-
-            <StackPanel Grid.Column="1" Spacing="16">
-                <Button x:Name="PickButton" Click="PickButton_Click" Height="64" HorizontalAlignment="Stretch"
-                        FontSize="20" FontWeight="SemiBold" Content="🎲 随机点歌" />
-
-                <Border x:Name="ResultPanel" Visibility="Collapsed"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="10">
-                        <TextBlock x:Name="ResultName" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap" />
-                        <TextBlock x:Name="ResultMeta" FontSize="14" Opacity="0.8" TextWrapping="Wrap" />
-                        <TextBlock x:Name="ResultUrl" FontSize="12" Opacity="0.65" TextWrapping="Wrap" />
-                        <Button x:Name="OpenLinkButton" Content="打开链接" Click="OpenLinkButton_Click" />
-                    </StackPanel>
-                </Border>
-
-                <TextBlock x:Name="EmptyHint" Text="点击上方按钮随机点歌" Opacity="0.55"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </StackPanel>
-        </Grid>
-
-        <TextBlock x:Name="StatusText" Grid.Row="2" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+        <NavigationView x:Name="Nav" Grid.Row="1"
+                        IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
+                        PaneDisplayMode="Left" OpenPaneLength="190"
+                        SelectionChanged="Nav_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Name="NavPick" Content="随机点歌" Tag="pick" />
+                <NavigationViewItem Content="歌曲管理" Tag="songs" />
+                <NavigationViewItem Content="点歌人" Tag="requesters" />
+                <NavigationViewItem Content="设置" Tag="settings" />
+            </NavigationView.MenuItems>
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
     </Grid>
 </Window>

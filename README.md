@@ -185,8 +185,8 @@ dotnet test tests\RandomSongs.Core.Tests
 dotnet run --project src\RandomSongs.App
 ```
 
-当前已实现（MVP-1）：歌单切换、歌曲列表、随机点歌、防重复、结果卡片、打开链接、按配置自动跳转。
-后续：歌曲/点歌人增删改、QQ 歌单同步、设置页、历史、备份恢复等。
+当前已实现（MVP-2）：随机点歌、歌曲增删改、点歌人管理、设置（防重复 / 自动跳转 / QQ 歌单同步）。
+后续：歌单管理、历史记录、导入导出与备份等。
 
 > 数据目录默认在 exe 同级的 `main_data`，可用环境变量 `RANDOM_SONGS_DATA` 指向别处（例如与命令行版共用）。
 > 详见 [`gui/README.md`](gui/README.md)。

@@ -1,0 +1,78 @@
+<Page
+    x:Class="RandomSongs.App.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="16">
+        <StackPanel Spacing="16" MaxWidth="780" HorizontalAlignment="Left">
+            <TextBlock Text="设置" FontSize="18" FontWeight="SemiBold" />
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="防重复播放" FontWeight="SemiBold" />
+                    <ToggleSwitch x:Name="PrevEnabled" Header="启用防重复" Toggled="Prev_Changed" />
+                    <ComboBox x:Name="PrevMode" Header="模式" Width="280" SelectionChanged="Prev_Changed">
+                        <ComboBoxItem Content="时间窗口（窗口内不重复）" Tag="time_window" />
+                        <ComboBoxItem Content="整轮不重复（全部播完再重置）" Tag="cycle" />
+                    </ComboBox>
+                    <NumberBox x:Name="PrevWindow" Header="时间窗口（分钟）" Width="200"
+                               Minimum="0" Maximum="2880" SpinButtonPlacementMode="Compact"
+                               ValueChanged="PrevNumber_Changed" />
+                    <ToggleSwitch x:Name="PrevReset" Header="无可选时自动重置" Toggled="Prev_Changed" />
+                    <ToggleSwitch x:Name="PrevAvoid" Header="避免连播同一首" Toggled="Prev_Changed" />
+                    <TextBlock x:Name="PrevInfo" Opacity="0.7" />
+                    <Button Content="重置播放记录" Click="PrevReset_Click" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="自动跳转" FontWeight="SemiBold" />
+                    <ToggleSwitch x:Name="JumpEnabled" Header="启用自动跳转" Toggled="Jump_Changed" />
+                    <ComboBox x:Name="JumpMode" Header="模式" Width="280" SelectionChanged="Jump_Changed">
+                        <ComboBoxItem Content="搜索跳转（B 站搜索歌曲）" Tag="search" />
+                        <ComboBoxItem Content="自定义 URL" Tag="custom" />
+                    </ComboBox>
+                    <TextBox x:Name="JumpUrl" Header="自定义 URL（支持 {query} / {song} / {artist}）"
+                             Width="560" LostFocus="JumpUrl_LostFocus" />
+                    <NumberBox x:Name="JumpDelay" Header="跳转延时（秒）" Width="200"
+                               Minimum="0" Maximum="60" SpinButtonPlacementMode="Compact"
+                               ValueChanged="JumpNumber_Changed" />
+                    <ToggleSwitch x:Name="JumpPrefer" Header="优先搜索（忽略歌曲自带链接）" Toggled="Jump_Changed" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="QQ 歌单同步" FontWeight="SemiBold" />
+                    <ToggleSwitch x:Name="QqEnabled" Header="启用 QQ 同步" Toggled="Qq_Changed" />
+                    <ToggleSwitch x:Name="QqAuto" Header="启动时自动同步" Toggled="Qq_Changed" />
+                    <TextBox x:Name="QqId" Header="QQ 歌单 ID 或分享链接" Width="560" LostFocus="QqId_LostFocus" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="立即同步到当前歌单" Click="QqSync_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button Content="拉取为新歌单" Click="QqImport_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="QqInfo" Opacity="0.7" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="数据目录" FontWeight="SemiBold" />
+                    <TextBlock x:Name="DataPathText" Opacity="0.7" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

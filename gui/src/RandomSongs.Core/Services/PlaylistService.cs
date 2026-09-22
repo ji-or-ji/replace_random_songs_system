@@ -29,6 +29,15 @@ public static class PlaylistService
         return candidate;
     }
 
+    /// <summary>新建歌单（注册 + 建数据文件），返回歌单 ID。</summary>
+    public static string CreatePlaylist(string name, string description = "")
+    {
+        var playlistId = UniquePlaylistId(name);
+        RegisterPlaylist(playlistId, name, description);
+        EnsurePlaylistFiles(playlistId);
+        return playlistId;
+    }
+
     /// <summary>创建歌单的数据文件（幂等）。</summary>
     public static string EnsurePlaylistFiles(
         string playlistId,

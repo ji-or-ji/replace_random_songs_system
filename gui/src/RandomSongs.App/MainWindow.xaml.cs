@@ -1,188 +1,69 @@
-using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using RandomSongs.App.Pages;
 using RandomSongs.Core;
 
 namespace RandomSongs.App;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly ObservableCollection<Song> _songs = new();
-    private List<KeyValuePair<string, PlaylistEntry>> _playlists = new();
-    private string? _currentPlaylistId;
-    private string? _resultUrl;
-    private bool _suppressCombo;
+    private bool _suppressNav;
 
     public MainWindow()
     {
         InitializeComponent();
         Title = "随机点歌系统";
-        SongList.ItemsSource = _songs;
-        TrySetWindowSize(1000, 660);
-        RefreshAll();
+        TrySetWindowSize(1100, 740);
+
+        _suppressNav = true;
+        Nav.SelectedItem = NavPick;
+        _suppressNav = false;
+        ContentFrame.Navigate(typeof(PickPage));
+
+        _ = StartupSyncAsync();
     }
 
-    private void RefreshAll()
+    private async Task StartupSyncAsync()
     {
-        AppInitializer.Initialize(quiet: true);
-        _playlists = ConfigService.GetPlaylists();
-        _currentPlaylistId = ConfigService.GetCurrentPlaylistId();
-        PopulatePlaylistCombo();
-        LoadSongs();
-        UpdatePreventionText();
-        ClearResult();
-        UpdateStatus();
-    }
-
-    private void UpdateStatus()
-        => StatusText.Text = $"数据目录: {AppPaths.DataRoot}    累计播放 {HistoryService.GetPlayCount()} 次";
-
-    private void PopulatePlaylistCombo()
-    {
-        _suppressCombo = true;
-        PlaylistCombo.Items.Clear();
-        foreach (var entry in _playlists)
+        try
         {
-            PlaylistCombo.Items.Add(entry.Value?.Name ?? entry.Key);
-        }
-        var index = _playlists.FindIndex(kv => kv.Key == _currentPlaylistId);
-        PlaylistCombo.SelectedIndex = index >= 0 ? index : (_playlists.Count > 0 ? 0 : -1);
-        _suppressCombo = false;
-    }
-
-    private void LoadSongs()
-    {
-        _songs.Clear();
-        if (!string.IsNullOrEmpty(_currentPlaylistId))
-        {
-            foreach (var song in SongService.LoadSongs(_currentPlaylistId))
+            var message = await QqPlaylistService.AutoSyncOnStartAsync();
+            if (!string.IsNullOrEmpty(message))
             {
-                _songs.Add(song);
+                ShowStatus(message, InfoBarSeverity.Informational);
             }
         }
-        SongCountText.Text = $"共 {_songs.Count} 首";
-    }
-
-    private void UpdatePreventionText()
-    {
-        if (string.IsNullOrEmpty(_currentPlaylistId))
+        catch
         {
-            PreventionText.Text = string.Empty;
-            return;
+            // 启动同步失败不影响使用
         }
-        var prevention = ConfigService.GetPrevention(_currentPlaylistId);
-        if (!prevention.Enabled)
-        {
-            PreventionText.Text = "防重复：关闭";
-            return;
-        }
-        var mode = prevention.Mode == "time_window"
-            ? $"{prevention.TimeWindowMinutes} 分钟窗口"
-            : "整轮不重复";
-        PreventionText.Text = $"防重复：{mode}（已记录 {prevention.PlayedSongs.Count} 首）";
     }
 
-    private void ClearResult()
+    public void ShowStatus(string message, InfoBarSeverity severity)
     {
-        _resultUrl = null;
-        ResultPanel.Visibility = Visibility.Collapsed;
-        EmptyHint.Visibility = Visibility.Visible;
+        StatusBar.Message = message;
+        StatusBar.Severity = severity;
+        StatusBar.IsOpen = true;
     }
 
-    private void PlaylistCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (_suppressCombo)
-        {
-            return;
-        }
-        var index = PlaylistCombo.SelectedIndex;
-        if (index < 0 || index >= _playlists.Count)
-        {
-            return;
-        }
-        _currentPlaylistId = _playlists[index].Key;
-        ConfigService.SetCurrentPlaylist(_currentPlaylistId);
-        HistoryService.RecordOperation(
-            "切换歌单",
-            $"切换到 '{_playlists[index].Value?.Name}'",
-            playlistId: _currentPlaylistId);
-        LoadSongs();
-        UpdatePreventionText();
-        ClearResult();
-    }
-
-    private void ReloadButton_Click(object sender, RoutedEventArgs e)
-    {
-        LoadSongs();
-        UpdatePreventionText();
-        UpdateStatus();
-    }
-
-    private void PickButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrEmpty(_currentPlaylistId))
+        if (_suppressNav || args.SelectedItem is not NavigationViewItem item)
         {
             return;
         }
 
-        var song = PreventionService.Pick(_currentPlaylistId, _songs);
-        if (song == null)
+        var page = item.Tag?.ToString() switch
         {
-            _resultUrl = null;
-            ResultPanel.Visibility = Visibility.Visible;
-            ResultName.Text = "没有可用的歌曲";
-            ResultMeta.Text = "歌单为空，或都在防重复窗口内且未开启自动重置";
-            ResultUrl.Text = string.Empty;
-            OpenLinkButton.IsEnabled = false;
-            EmptyHint.Visibility = Visibility.Collapsed;
-            return;
-        }
+            "songs" => typeof(SongsPage),
+            "requesters" => typeof(RequestersPage),
+            "settings" => typeof(SettingsPage),
+            _ => typeof(PickPage),
+        };
 
-        HistoryService.RecordPlay(song, _currentPlaylistId);
-        ShowResult(song);
-        UpdatePreventionText();
-        UpdateStatus();
-
-        var autoJump = ConfigService.Load().AutoJump ?? new AutoJumpSettings();
-        if (autoJump.Enabled)
+        if (ContentFrame.CurrentSourcePageType != page)
         {
-            var url = AutoJumpService.BuildUrl(song, autoJump);
-            if (!string.IsNullOrEmpty(url))
-            {
-                _ = OpenAfterDelayAsync(url, Math.Max(0, autoJump.Delay));
-            }
-        }
-    }
-
-    private void ShowResult(Song song)
-    {
-        var autoJump = ConfigService.Load().AutoJump ?? new AutoJumpSettings();
-        _resultUrl = AutoJumpService.BuildUrl(song, autoJump);
-
-        ResultName.Text = song.SongName;
-        ResultMeta.Text =
-            $"歌手: {(string.IsNullOrEmpty(song.Artist) ? "未知" : song.Artist)}    " +
-            $"点歌人: {(string.IsNullOrEmpty(song.RequestedBy) ? "未知" : song.RequestedBy)}";
-        ResultUrl.Text = string.IsNullOrEmpty(_resultUrl) ? string.Empty : _resultUrl;
-        OpenLinkButton.IsEnabled = !string.IsNullOrEmpty(_resultUrl);
-        ResultPanel.Visibility = Visibility.Visible;
-        EmptyHint.Visibility = Visibility.Collapsed;
-    }
-
-    private async Task OpenAfterDelayAsync(string url, int seconds)
-    {
-        if (seconds > 0)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(seconds));
-        }
-        AutoJumpService.Open(url);
-    }
-
-    private void OpenLinkButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (!string.IsNullOrEmpty(_resultUrl))
-        {
-            AutoJumpService.Open(_resultUrl);
+            ContentFrame.Navigate(page);
         }
     }
 
