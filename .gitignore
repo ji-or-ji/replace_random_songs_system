@@ -1,3 +1,8 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+TestResults/
+
 # Python
 __pycache__/
 *.py[cod]

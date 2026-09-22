@@ -46,6 +46,11 @@ replace_random_songs_system/
 │   ├── duplicate_prevention_manager.py  # 防重复逻辑与菜单
 │   └── qq_importer.py             # QQ 音乐歌单拉取与同步
 ├── tests/                  # 单元测试
+├── gui/                    # Windows 桌面端（.NET 8 / WinUI 3，原生）
+│   ├── RandomSongs.sln
+│   ├── src/RandomSongs.Core/     # 数据与逻辑（读写同一套 main_data）
+│   ├── src/RandomSongs.App/      # WinUI 3 界面
+│   └── tests/RandomSongs.Core.Tests/
 └── main_data/              # 运行时数据（首次运行自动生成，不入库）
 ```
 
@@ -165,6 +170,26 @@ python "完整路径\run.py" --jump --url "https://search.bilibili.com/all?keywo
 > 说明：静默模式会按**当前配置**决定是否自动跳转。若不想在联动时打开浏览器，加 `--no-jump`；
 > 想固定跳某个地址，用 `--url <URL>`。静默模式下跳转相关的提示不会写入标准输出，
 > **stdout 只有抽歌结果本身**，可直接被联动工具解析。
+
+## Windows 桌面端（gui/）· 开发中
+
+`gui/` 是原生的 **.NET 8 + WinUI 3** 桌面端，目标是把 Windows 上的主程序从命令行迁到 GUI。
+它与命令行版**读写同一套 `main_data` YAML**，两边数据互通。
+
+环境：.NET 8 SDK。免安装自包含构建（无需另装 Windows App SDK 运行时）。
+
+```bat
+cd gui
+dotnet build RandomSongs.sln          # 也可只 build src\RandomSongs.App
+dotnet test tests\RandomSongs.Core.Tests
+dotnet run --project src\RandomSongs.App
+```
+
+当前已实现（MVP-1）：歌单切换、歌曲列表、随机点歌、防重复、结果卡片、打开链接、按配置自动跳转。
+后续：歌曲/点歌人增删改、QQ 歌单同步、设置页、历史、备份恢复等。
+
+> 数据目录默认在 exe 同级的 `main_data`，可用环境变量 `RANDOM_SONGS_DATA` 指向别处（例如与命令行版共用）。
+> 详见 [`gui/README.md`](gui/README.md)。
 
 ## 使用说明
 
