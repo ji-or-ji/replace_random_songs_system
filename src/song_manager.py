@@ -1,210 +1,179 @@
-import json
-import random
+"""
+歌曲数据管理：读写 songs.yaml、校验、统计、随机选择入口。
+
+每首歌以 UUID 作为唯一标识（字符串），避免旧版"自增整数 vs UUID"混用的问题。
+"""
+
 import datetime
-from config_manager import load_playlist_config, save_playlist_config
+import uuid
+
+from config_manager import get_current_playlist_id, update_song_count
+from paths import playlist_songs_file
+from storage import load_yaml, save_yaml
+
+SONG_FIELDS = ("id", "song_name", "artist", "url", "requested_by", "created_at", "last_modified")
+
+
+def _now_str():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def new_song_id():
+    return str(uuid.uuid4())
+
+
+def normalize_song(raw):
+    """把任意来源的歌曲 dict 规范成标准结构，返回 (song, changed)。"""
+    changed = False
+    song = dict(raw) if isinstance(raw, dict) else {}
+
+    # 兼容旧字段名 url_list
+    if "url" not in song and "url_list" in song:
+        song["url"] = song.pop("url_list")
+        changed = True
+    # 旧版 url 可能是列表
+    if isinstance(song.get("url"), (list, tuple)):
+        song["url"] = song["url"][0] if song["url"] else ""
+        changed = True
+
+    for key in ("song_name", "artist", "url", "requested_by"):
+        if not isinstance(song.get(key), str):
+            song[key] = "" if song.get(key) is None else str(song[key])
+            changed = True
+
+    if not song.get("id"):
+        song["id"] = new_song_id()
+        changed = True
+    else:
+        song["id"] = str(song["id"])
+
+    if not song.get("created_at"):
+        song["created_at"] = _now_str()
+        changed = True
+    if not song.get("last_modified"):
+        song["last_modified"] = song["created_at"]
+        changed = True
+
+    # 去掉未预期的键，保持文件干净（保留未知键以免丢数据）
+    return song, changed
+
 
 def load_songs(playlist_id=None):
-    """加载歌曲列表文件"""
-    config = load_playlist_config()
-    
-    if playlist_id:
-        # 加载指定歌单
-        if playlist_id in config['playlists']:
-            playlist = config['playlists'][playlist_id]
-            target_playlist_id = playlist_id
-        else:
-            print(f'歌单不存在: {playlist_id}')
-            return []
+    """加载指定/当前歌单的歌曲列表；会自动补齐缺失字段并回写。"""
+    pid = playlist_id or get_current_playlist_id()
+    if not pid:
+        return []
+
+    data = load_yaml(playlist_songs_file(pid), default={})
+    raw_songs = data.get("songs") if isinstance(data, dict) else None
+    if not isinstance(raw_songs, list):
+        raw_songs = []
+
+    songs = []
+    healed = False
+    for raw in raw_songs:
+        song, changed = normalize_song(raw)
+        songs.append(song)
+        healed = healed or changed
+
+    if healed:
+        save_songs(songs, pid)
     else:
-        # 加载当前歌单
-        current_playlist_id = config['current_playlist']
-        playlist = config['playlists'][current_playlist_id]
-        target_playlist_id = current_playlist_id
-    
-    # 构建歌曲文件路径
-    songs_file_path = f"main_data/{target_playlist_id}/songs_list.json"
-    
-    try:
-        with open(songs_file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            songs = data.get('songs', [])
-            
-            # 更新歌单统计信息
-            config['playlists'][target_playlist_id]['song_count'] = len(songs)
-            save_playlist_config(config)
-            
-            print(f'成功加载歌曲列表: {songs_file_path} (歌单: {playlist["name"]})')
-            return songs
-    except FileNotFoundError:
-        print(f'歌曲列表文件不存在: {songs_file_path}')
-        return []
-    except json.JSONDecodeError:
-        print(f'歌曲列表文件已损坏，请检查文件格式: {songs_file_path}')
-        return []
+        update_song_count(pid, len(songs))
+    return songs
+
 
 def save_songs(songs, playlist_id=None):
-    """保存歌曲列表到文件"""
-    config = load_playlist_config()
-    
-    if playlist_id:
-        # 保存到指定歌单
-        if playlist_id in config['playlists']:
-            target_playlist_id = playlist_id
-        else:
-            print(f'歌单不存在: {playlist_id}')
-            return False
-    else:
-        # 保存到当前歌单
-        current_playlist_id = config['current_playlist']
-        target_playlist_id = current_playlist_id
-    
-    # 构建歌曲文件路径
-    songs_file_path = f"main_data/{target_playlist_id}/songs_list.json"
-    
+    """保存歌曲列表到 songs.yaml。"""
+    pid = playlist_id or get_current_playlist_id()
+    if not pid:
+        print("[错误] 没有可用的歌单，无法保存歌曲")
+        return False
     try:
-        with open(songs_file_path, 'w', encoding='utf-8') as f:
-            json.dump({'songs': songs}, f, ensure_ascii=False, indent=2)
-        
-        # 更新歌单统计信息
-        config['playlists'][target_playlist_id]['song_count'] = len(songs)
-        save_playlist_config(config)
-        
+        save_yaml(playlist_songs_file(pid), {"songs": songs})
+        update_song_count(pid, len(songs))
         return True
-    except Exception as e:
-        print(f'保存文件失败: {e}')
+    except OSError as exc:
+        print(f"[错误] 保存歌曲失败: {exc}")
         return False
 
+
 def filter_valid_songs(songs):
-    """过滤有效的歌曲（去除空歌名和空歌手名的歌曲）"""
-    valid_songs = []
-    for song in songs:
-        song_name = song.get('song_name', '').strip()
-        artist = song.get('artist', '').strip()
-        # 只有当歌名不为空时才认为是有效歌曲
-        if song_name:
-            valid_songs.append(song)
-    return valid_songs
+    """有效歌曲：歌名非空。"""
+    valid = []
+    for song in songs or []:
+        if isinstance(song, dict) and str(song.get("song_name", "")).strip():
+            valid.append(song)
+    return valid
 
-def get_random_song_with_prevention(songs, playlist_id=None):
-    """带防重复功能的随机选择歌曲"""
-    if not songs:
-        return None
-    
-    valid_songs = filter_valid_songs(songs)
-    if not valid_songs:
-        return None
-    
-    # 获取当前歌单的防重复配置
-    config = load_playlist_config()
-    if playlist_id:
-        playlist_config = config['playlists'].get(playlist_id)
-    else:
-        playlist_config = config['playlists'].get(config['current_playlist'])
-    
-    if not playlist_config or not playlist_config['duplicate_prevention']['enabled']:
-        # 防重复功能未启用，直接随机选择
-        return random.choice(valid_songs)
-    
-    prevention_config = playlist_config['duplicate_prevention']
-    
-    # 检查是否需要重置播放记录
-    if prevention_config['reset_on_all_played']:
-        current_time = datetime.datetime.now()
-        last_reset_time = prevention_config.get('last_reset_time')
-        
-        # 如果所有歌曲都已播放过，或者从未重置过，则重置
-        played_count = len(prevention_config['played_songs'])
-        total_songs = len(valid_songs)
-        
-        if played_count >= total_songs or last_reset_time is None:
-            prevention_config['played_songs'] = []
-            prevention_config['last_reset_time'] = current_time.strftime("%Y-%m-%d %H:%M:%S")
-            save_playlist_config(config)
-    
-    # 获取时间窗口内的已播放歌曲
-    played_songs_in_window = []
-    if prevention_config['mode'] == 'time_window':
-        time_window_hours = prevention_config['time_window_hours']
-        time_window_minutes = prevention_config['time_window_minutes']
-        time_window_seconds = time_window_hours * 3600 + time_window_minutes * 60
-        
-        current_time = datetime.datetime.now()
-        for song_info in prevention_config['played_songs']:
-            play_time = datetime.datetime.strptime(song_info['play_time'], "%Y-%m-%d %H:%M:%S")
-            time_diff = (current_time - play_time).total_seconds()
-            
-            if time_diff <= time_window_seconds:
-                played_songs_in_window.append(song_info['song_id'])
-    
-    # 过滤出未在时间窗口内播放过的歌曲
-    available_songs = [song for song in valid_songs 
-                      if song.get('id') not in played_songs_in_window]
-    
-    if not available_songs:
-        # 所有歌曲都在时间窗口内播放过，根据配置决定是否重置
-        if prevention_config['reset_on_all_played']:
-            prevention_config['played_songs'] = []
-            prevention_config['last_reset_time'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            save_playlist_config(config)
-            available_songs = valid_songs
-        else:
-            # 不重置，返回None表示无可用歌曲
-            return None
-    
-    # 随机选择一首歌曲
-    selected_song = random.choice(available_songs)
-    
-    # 记录播放历史
-    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    prevention_config['played_songs'].append({
-        'song_id': selected_song.get('id'),
-        'song_name': selected_song.get('song_name', '未知'),
-        'play_time': current_time
-    })
-    
-    save_playlist_config(config)
-    
-    return selected_song
 
-def get_random_song(songs):
-    """随机选择一首歌曲（兼容旧版本）"""
-    return get_random_song_with_prevention(songs)
+def find_song_index(songs, song_id):
+    for index, song in enumerate(songs or []):
+        if song.get("id") == song_id:
+            return index
+    return -1
 
-def get_next_song_id(songs):
-    """获取下一个可用的歌曲ID"""
-    if not songs:
-        return 1
-    max_id = max(song.get('id', 0) for song in songs)
-    return max_id + 1
 
 def get_songs_statistics(songs):
-    """获取歌曲统计信息"""
+    """统计歌曲数量与各点歌人分布。"""
     valid_songs = filter_valid_songs(songs)
-    total_songs = len(songs)
-    valid_count = len(valid_songs)
-    invalid_count = total_songs - valid_count
-    
-    # 统计点歌人
     requesters = {}
     for song in valid_songs:
-        requester = song.get('requested_by', '未知')
+        requester = song.get("requested_by") or "未知"
         requesters[requester] = requesters.get(requester, 0) + 1
-    
     return {
-        'total_songs': total_songs,
-        'valid_songs': valid_count,
-        'invalid_songs': invalid_count,
-        'requesters': requesters
+        "total_songs": len(songs or []),
+        "valid_songs": len(valid_songs),
+        "invalid_songs": len(songs or []) - len(valid_songs),
+        "requesters": requesters,
     }
 
-def display_statistics(statistics):
-    """显示统计信息"""
-    print("\n📊 歌曲统计信息 📊")
+
+def display_statistics(statistics, playlist_id=None):
+    from config_manager import playlist_name
+
+    title = ""
+    if playlist_id:
+        title = f"（歌单: {playlist_name(playlist_id)}）"
+    print(f"\n📊 歌曲统计信息 {title}")
     print("=" * 40)
     print(f"总歌曲数: {statistics['total_songs']}")
     print(f"有效歌曲: {statistics['valid_songs']}")
     print(f"无效歌曲: {statistics['invalid_songs']}")
     print("\n👥 点歌人统计:")
-    for requester, count in statistics['requesters'].items():
-        print(f"  {requester}: {count}首")
+    if statistics["requesters"]:
+        for requester, count in sorted(
+            statistics["requesters"].items(), key=lambda item: (-item[1], item[0])
+        ):
+            print(f"  {requester}: {count}首")
+    else:
+        print("  （暂无）")
     print("=" * 40)
+
+
+def get_random_song(playlist_id=None, songs=None):
+    """随机点歌入口，交由防重复模块决定最终结果。"""
+    from duplicate_prevention_manager import pick_song
+
+    pid = playlist_id or get_current_playlist_id()
+    if not pid:
+        return None
+    if songs is None:
+        songs = load_songs(pid)
+    return pick_song(pid, songs)
+
+
+def append_song(playlist_id, song):
+    """向歌单追加一首歌并保存。"""
+    songs = load_songs(playlist_id)
+    songs.append(song)
+    return save_songs(songs, playlist_id)
+
+
+def remove_song(playlist_id, song_id):
+    songs = load_songs(playlist_id)
+    index = find_song_index(songs, song_id)
+    if index < 0:
+        return False
+    del songs[index]
+    return save_songs(songs, playlist_id)

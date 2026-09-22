@@ -1,261 +1,214 @@
+"""
+随机点歌系统 · 主入口。
 
-# 导入模块
-import json
-import os
-import random
+首次运行时自动初始化 main_data/ 结构并写入一个含示例歌曲的默认歌单，
+之后所有数据都以 YAML 形式存放在 main_data/ 下。
+"""
+
 import datetime
-import time
-import webbrowser
+import os
+import sys
 
-# 导入自定义模块
-from history_manager import record_history, view_history
-from config_manager import load_playlist_config, save_playlist_config, load_auto_jump_config, save_auto_jump_config
-from song_manager import load_songs, save_songs, filter_valid_songs, get_random_song_with_prevention, get_songs_statistics, display_statistics
-from requester_manager import requester_menu, get_requester_list
-from song_operations import song_management_menu
-from playlist_manager import playlist_menu
-from auto_jump_manager import auto_jump, auto_jump_menu
-from duplicate_prevention_manager import duplicate_prevention_menu
+import paths
+from console_utils import setup_console
+from storage import save_yaml
+
+# 示例数据统一使用虚构点歌人，避免出现真实姓名
+EXAMPLE_REQUESTERS = ["阿澈", "小满", "林深", "白露"]
+EXAMPLE_SONGS = [
+    ("夜曲", "周杰伦", "阿澈"),
+    ("晴天", "周杰伦", "小满"),
+    ("平凡之路", "朴树", "林深"),
+    ("起风了", "买辣椒也用券", "白露"),
+    ("稻香", "周杰伦", "阿澈"),
+]
+
+
+def _now_str():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _write_templates():
+    paths.ensure_dir(paths.TEMPLATE_DIR)
+    templates = {
+        "playlist_template.yaml": "name: 新歌单\ndescription: 歌单说明\n",
+        "song_template.yaml": (
+            "id: \"自动生成的UUID\"\n"
+            "song_name: 歌名\n"
+            "artist: 歌手\n"
+            "url: \"\"\n"
+            "requested_by: 点歌人\n"
+            "created_at: \"2026/01/01 00:00:00\"\n"
+            "last_modified: \"2026/01/01 00:00:00\"\n"
+        ),
+        "requester_template.yaml": "name: 点歌人\nemail: \"\"\nnotes: \"\"\n",
+    }
+    for filename, content in templates.items():
+        path = os.path.join(paths.TEMPLATE_DIR, filename)
+        if not os.path.exists(path):
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+
+
+def _seed_default_playlist():
+    """创建默认歌单并写入示例歌曲。"""
+    from playlist_manager import ensure_playlist_files
+    from requester_manager import save_requesters
+    from song_manager import normalize_song
+
+    from config_manager import register_playlist, set_current_playlist
+
+    requesters = [{"name": name, "email": "", "notes": ""} for name in EXAMPLE_REQUESTERS]
+    now = _now_str()
+    songs = []
+    for song_name, artist, requester in EXAMPLE_SONGS:
+        song, _ = normalize_song(
+            {
+                "song_name": song_name,
+                "artist": artist,
+                "url": "",
+                "requested_by": requester,
+                "created_at": now,
+                "last_modified": now,
+            }
+        )
+        songs.append(song)
+
+    register_playlist("default", "默认歌单", "主歌单（含示例歌曲）")
+    ensure_playlist_files("default", songs=songs, requesters=requesters)
+    set_current_playlist("default")
+    return songs
+
 
 def initialize_system():
-    """初始化系统，检查并创建必要的文件和目录"""
-    
-    # 创建主数据目录
-    main_data_dirs = [
-        'main_data',
-        'main_data/global',
-        'main_data/playlists',
-        'main_data/playlists/default',
-        'main_data/playlists/default/music_files',
-        'main_data/templates'
-    ]
-    
-    for dir_path in main_data_dirs:
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path, exist_ok=True)
-            print(f"📁 创建目录: {dir_path}")
-    
-    # 检查并创建全局配置文件
-    global_config_path = 'main_data/global/global_config.yaml'
-    if not os.path.exists(global_config_path):
-        global_config = {
-            "system_version": "1.0.0",
-            "initialized_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "total_playlists": 1
-        }
-        with open(global_config_path, 'w', encoding='utf-8') as f:
-            json.dump(global_config, f, ensure_ascii=False, indent=2)
-        print("✅ 创建全局配置文件")
-    
-    # 检查并请求创建歌单
-    playlist_config_path = 'main_data/default/meta.yaml'
-    if not os.path.exists(playlist_config_path):
-        while True:
-            choice = input("似乎默认歌单的配置文件不见了...要重新创建吗？(y/N)")
-            if choice == "y":
-                playlist_config = {
-                    "current_playlist": "default",
-                    "playlists": {
-                        "default": {
-                            "name": "默认歌单",
-                            "description": "默认歌单",
-                            "file_path": "main_data/playlists/default/songs.yaml",
-                            "requester_file_path": "main_data/playlists/default/requesters.yaml",
-                            "history_file_path": "main_data/playlists/default/play_history.log",
-                            "history_operate_path": "main_data/playlists/default/operate_history.log",
-                            "created_at": datetime.datetime.now().strftime("%Y/%m/%d"),
-                            "song_count": 5,  # 更新为5首示例歌曲
-                            "duplicate_prevention": {
-                                "enabled": True,
-                                "mode": "time_window",
-                                "time_window_hours": 1,
-                                "time_window_minutes": 0,
-                                "reset_on_all_played": True,
-                                "last_reset_time": None,
-                                "played_songs": []
-                            }
-                        }
-                    }
-                }
-                with open(playlist_config_path, 'w', encoding='utf-8') as f:
-                    json.dump(playlist_config, f, ensure_ascii=False, indent=2)
-                print("✅ 创建歌单配置文件")
-                break
-        
-            elif choice == "N":
-                print("已跳过创建默认歌单的配置文件")
-                break
-            else:
-                print("无效的选择")
-    
-    # 检查并创建歌曲列表文件
-    songs_list_path = 'main_data/playlists/default/songs.yaml'
-    if not os.path.exists(songs_list_path):
-        while True:
-            # 添加一些示例歌曲，让新用户第一次使用时就有可用的歌曲
-            songs_list = {
-                "songs": [
-                    {
-                        "song_name": "夜曲",
-                        "artist": "周杰伦",
-                        "requested_by": "系统",
-                        "url_list": ["https://music.163.com/#/song?id=185809"],
-                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    },
-                    {
-                        "song_name": "晴天",
-                        "artist": "周杰伦",
-                        "requested_by": "系统",
-                        "url_list": ["https://music.163.com/#/song?id=186016"],
-                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    },
-                    {
-                        "song_name": "七里香",
-                        "artist": "周杰伦",
-                        "requested_by": "系统",
-                        "url_list": ["https://music.163.com/#/song?id=185923"],
-                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    },
-                    {
-                        "song_name": "稻香",
-                        "artist": "周杰伦",
-                        "requested_by": "系统",
-                        "url_list": ["https://music.163.com/#/song?id=287035"],
-                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    },
-                    {
-                        "song_name": "青花瓷",
-                        "artist": "周杰伦",
-                        "requested_by": "系统",
-                        "url_list": ["https://music.163.com/#/song?id=185951"],
-                        "added_time": datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    }
-                ]
-            }
-            with open(songs_list_path, 'w', encoding='utf-8') as f:
-                json.dump(songs_list, f, ensure_ascii=False, indent=2)
-            print("✅ 创建歌曲列表文件（包含5首示例歌曲）")
-    
-    # 检查并创建点歌人列表文件
-    requester_list_path = 'main_data/play_list_1/requester_list.json'
-    if not os.path.exists(requester_list_path):
-        # 添加示例歌曲对应的点歌人
-        requester_list = ["系统"]
-        with open(requester_list_path, 'w', encoding='utf-8') as f:
-            json.dump(requester_list, f, ensure_ascii=False, indent=2)
-        print("✅ 创建点歌人列表文件（包含示例点歌人）")
-    
-    # 检查并创建历史记录文件
-    history_path = 'main_data/play_list_1/history_records.log'
-    if not os.path.exists(history_path):
-        with open(history_path, 'w', encoding='utf-8') as f:
-            f.write(f"系统初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建历史记录文件")
-    
-    # 检查并创建自动跳转配置文件
-    auto_jump_config_path = 'main_data/auto_jump_config.json'
-    if not os.path.exists(auto_jump_config_path):
-        auto_jump_config = {
-            "auto_jump_enabled": False,
-            "jump_mode": "search",
-            "custom_url": "",
-            "jump_delay": 3
-        }
-        with open(auto_jump_config_path, 'w', encoding='utf-8') as f:
-            json.dump(auto_jump_config, f, ensure_ascii=False, indent=2)
-        print("✅ 创建自动跳转配置文件")
-    
-    # 检查并创建全局历史记录文件
-    global_history_path = 'main_data/global/history/global_play_history.log'
-    if not os.path.exists(global_history_path):
-        with open(global_history_path, 'w', encoding='utf-8') as f:
-            f.write(f"全局历史记录初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建全局播放历史文件")
-    
-    global_operate_history_path = 'main_data/global/history/global_operate_history.log'
-    if not os.path.exists(global_operate_history_path):
-        with open(global_operate_history_path, 'w', encoding='utf-8') as f:
-            f.write(f"全局操作历史初始化于: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        print("✅ 创建全局操作历史文件")
-    
-    print("🎉 系统初始化完成！")
+    """幂等初始化：建目录、写模板、必要时创建默认歌单。"""
+    for directory in (paths.MAIN_DATA_DIR, paths.GLOBAL_DIR, paths.PLAYLIST_ROOT, paths.TEMPLATE_DIR):
+        paths.ensure_dir(directory)
 
-def get_random_song(songs):
-    """随机选择一首歌曲（兼容旧版本）"""
-    return get_random_song_with_prevention(songs)
+    _write_templates()
+
+    from config_manager import config_exists, load_global_config
+
+    config = load_global_config()
+    if not config_exists() or not config.get("playlists"):
+        print("📦 首次运行，正在创建默认歌单与示例数据...")
+        _seed_default_playlist()
+
+    if not os.path.exists(paths.SYSTEM_STATS_FILE):
+        save_yaml(paths.SYSTEM_STATS_FILE, {"total_plays": 0, "last_play_time": None})
+
+    from config_manager import get_current_playlist_id, save_global_config
+
+    config = load_global_config()
+    if not config.get("initialized_at"):
+        config["initialized_at"] = _now_str()
+        save_global_config(config)
+    get_current_playlist_id()  # 修正非法的当前歌单
+
+
+# ---------------------------------------------------------------------------
+# 主流程
+# ---------------------------------------------------------------------------
 
 def display_song_info(song):
-    """显示歌曲信息"""
+    from auto_jump_manager import auto_jump
+    from history_manager import record_play
+
     if not song:
-        print("没有找到有效的歌曲")
+        print("\n⚠️ 当前没有可供点播的歌曲（可能都在防重复窗口内，或歌单为空）")
         return
-    
     print("\n🎵 随机点歌结果 🎵")
     print("=" * 30)
     print(f"歌曲名: {song.get('song_name', '未知')}")
-    print(f"歌手: {song.get('artist', '未知') or '未知'}")
-    print(f"点歌人: {song.get('requested_by', '未知')}")
-    if song.get('url_list'):
-        print(f"链接: {song.get('url_list')}")
+    print(f"歌手: {song.get('artist') or '未知'}")
+    print(f"点歌人: {song.get('requested_by') or '未知'}")
+    if song.get("url"):
+        print(f"链接: {song['url']}")
     print("=" * 30)
-    
-    # 记录历史
-    record_history("随机点歌", f"歌曲: {song.get('song_name', '未知')} - 歌手: {song.get('artist', '未知')}")
-    
-    # 执行自动网页跳转
+    record_play(song)
     auto_jump(song)
 
-def settings_menu():
-    """设置菜单"""
+
+def history_menu():
+    from history_manager import view_operation_history, view_play_history
+
     while True:
-        config = load_playlist_config()
-        current_playlist = config['playlists'][config['current_playlist']]['name']
-        
-        print(f"\n⚙️ 设置菜单 ⚙️ (当前歌单: {current_playlist})")
+        print("\n📚 历史记录")
         print("=" * 30)
-        print("1. 歌单管理")
-        print("2. 自动网页跳转开关")
-        print("3. 防重复功能设置")
-        print("4. 返回主菜单")
-        
-        choice = input("请输入选项 (1-4): ").strip()
-        
-        if choice == '1':
-            new_songs = playlist_menu()
-            if new_songs is not None:
-                # 返回新的歌曲列表给调用者
-                return new_songs
-        elif choice == '2':
-            auto_jump_menu()
-        elif choice == '3':
-            duplicate_prevention_menu()
-        elif choice == '4':
+        print("1. 操作历史")
+        print("2. 播放历史")
+        print("3. 返回主菜单")
+        choice = input("请选择操作: ").strip()
+        if choice == "1":
+            view_operation_history()
+        elif choice == "2":
+            view_play_history()
+        elif choice == "3":
             break
         else:
-            print("无效选项，请重新选择!")
-    
-    return None
+            print("❌ 无效的选择，请重新输入")
+
+
+def settings_menu():
+    from auto_jump_manager import auto_jump_menu
+    from config_manager import get_current_playlist_id, playlist_name
+    from duplicate_prevention_manager import duplicate_prevention_menu
+    from playlist_manager import playlist_menu
+
+    while True:
+        print(f"\n⚙️ 设置菜单（当前歌单: {playlist_name(get_current_playlist_id())}）")
+        print("=" * 30)
+        print("1. 歌单管理")
+        print("2. 自动网页跳转设置")
+        print("3. 防重复功能设置")
+        print("4. QQ 歌单同步")
+        print("5. 返回主菜单")
+        choice = input("请选择操作: ").strip()
+        if choice == "1":
+            playlist_menu()
+        elif choice == "2":
+            auto_jump_menu()
+        elif choice == "3":
+            duplicate_prevention_menu()
+        elif choice == "4":
+            from qq_importer import qq_sync_menu
+
+            qq_sync_menu()
+        elif choice == "5":
+            break
+        else:
+            print("❌ 无效的选择，请重新输入")
+
 
 def main():
-    """主函数"""
+    from config_manager import get_current_playlist_id, playlist_name
+    from history_manager import get_play_count
+    from qq_importer import auto_sync_on_start
+    from song_manager import (
+        display_statistics,
+        filter_valid_songs,
+        get_random_song,
+        get_songs_statistics,
+        load_songs,
+    )
+
+    setup_console()
     print("🎵 随机点歌系统 🎵")
     print("正在初始化系统...")
-    
-    # 初始化系统，检查并创建必要的文件和目录
     initialize_system()
-    
-    print("正在加载歌曲列表...")
+
+    sync_message = auto_sync_on_start()
+    if sync_message:
+        print(sync_message)
+
     songs = load_songs()
-    if not songs:
-        print("没有找到任何歌曲，程序退出")
-        return
-    
-    # 显示统计信息
-    stats = get_songs_statistics(songs)
-    display_statistics(stats)
-    
+    print(f"正在加载歌曲列表（歌单: {playlist_name(get_current_playlist_id())}）...")
+    if not filter_valid_songs(songs):
+        print("⚠️ 当前歌单没有有效歌曲，可在「歌曲管理」中添加，或导入歌单。")
+
     while True:
-        print("\n请选择操作:")
+        pid = get_current_playlist_id()
+        print(f"\n🎵 主菜单（当前歌单: {playlist_name(pid)}，累计播放 {get_play_count()} 次）")
         print("1. 随机点歌")
         print("2. 重新加载歌曲列表")
         print("3. 查看统计信息")
@@ -264,50 +217,49 @@ def main():
         print("6. 查看历史记录")
         print("7. 设置")
         print("8. 退出")
-        
         choice = input("请输入选项 (1-8): ").strip()
-        
-        if choice == '1':
-            random_song = get_random_song(songs)
-            display_song_info(random_song)
-            
-        elif choice == '2':
+
+        if choice == "1":
+            display_song_info(get_random_song())
+        elif choice == "2":
             songs = load_songs()
-            if songs:
-                print("歌曲列表重新加载成功!")
-                stats = get_songs_statistics(songs)
-                display_statistics(stats)
-            else:
-                print("重新加载失败!")
-                
-        elif choice == '3':
-            stats = get_songs_statistics(songs)
-            display_statistics(stats)
-            
-        elif choice == '4':
+            print(f"✅ 已重新加载，共 {len(filter_valid_songs(songs))} 首有效歌曲")
+        elif choice == "3":
+            display_statistics(get_songs_statistics(songs), get_current_playlist_id())
+        elif choice == "4":
+            from requester_manager import requester_menu
+
             requester_menu()
-            
-        elif choice == '5':
+        elif choice == "5":
+            from song_operations import song_management_menu
+
             song_management_menu()
-            
-        elif choice == '6':
-            view_history()
-            
-        elif choice == '7':
-            new_songs = settings_menu()
-            if new_songs is not None:
-                songs = new_songs
-                print("歌单已切换，歌曲列表已更新!")
-                stats = get_songs_statistics(songs)
-                display_statistics(stats)
-            
-        elif choice == '8':
+            songs = load_songs()
+        elif choice == "6":
+            history_menu()
+        elif choice == "7":
+            settings_menu()
+            songs = load_songs()
+        elif choice == "8":
             print("天空属于哈夫克~！")
             break
-            
         else:
-            print("无效选项，请重新选择!")
+            print("❌ 无效选项，请重新选择")
+
+
+def cli():
+    """命令行入口：处理中断与退出暂停。"""
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        print("\n已退出")
+    finally:
+        if sys.stdin is not None and getattr(sys.stdin, "isatty", lambda: False)():
+            try:
+                input("\n按回车键退出程序...")
+            except (KeyboardInterrupt, EOFError):
+                pass
+
 
 if __name__ == "__main__":
-    main()
-    input("\n按回车键退出程序...")
+    cli()

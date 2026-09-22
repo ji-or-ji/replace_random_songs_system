@@ -1,163 +1,133 @@
-import json
-import os
+"""
+自动网页跳转：随机点歌后自动打开歌曲链接或搜索页。
+"""
+
 import time
 import webbrowser
-from config_manager import load_auto_jump_config, save_auto_jump_config
-from history_manager import record_history
+
+from config_manager import get_auto_jump_config, save_auto_jump_config
+from history_manager import record_operation
+
+
+def _update(**fields):
+    config = get_auto_jump_config()
+    config.update(fields)
+    save_auto_jump_config(config)
+    return config
+
 
 def enable_auto_jump():
-    """启用自动跳转"""
-    config = load_auto_jump_config()
-    config['auto_jump_enabled'] = True
-    
-    if save_auto_jump_config(config):
-        record_history("启用自动跳转", "", "成功")
-        print("✅ 已启用自动跳转")
-    else:
-        record_history("启用自动跳转", "", "失败")
-        print("❌ 启用自动跳转失败")
+    _update(enabled=True)
+    record_operation("启用自动跳转", "")
+    print("✅ 已启用自动跳转")
+
 
 def disable_auto_jump():
-    """关闭自动跳转"""
-    config = load_auto_jump_config()
-    config['auto_jump_enabled'] = False
-    
-    if save_auto_jump_config(config):
-        record_history("关闭自动跳转", "", "成功")
-        print("✅ 已关闭自动跳转")
-    else:
-        record_history("关闭自动跳转", "", "失败")
-        print("❌ 关闭自动跳转失败")
+    _update(enabled=False)
+    record_operation("关闭自动跳转", "")
+    print("✅ 已关闭自动跳转")
+
 
 def set_jump_mode():
-    """设置跳转模式"""
-    config = load_auto_jump_config()
-    
-    print("\n🌐 跳转模式设置 🌐")
+    print("\n🌐 跳转模式设置")
     print("=" * 30)
-    print("1. 🔍 搜索跳转模式")
-    print("2. 🔗 自定义URL跳转模式")
-    
-    try:
-        choice = input("请选择跳转模式: ").strip()
-        
-        if choice == '1':
-            config['jump_mode'] = 'search'
-            if save_auto_jump_config(config):
-                record_history("设置跳转模式", "搜索跳转模式", "成功")
-                print("✅ 已设置为搜索跳转模式")
-            else:
-                record_history("设置跳转模式", "搜索跳转模式", "失败")
-                print("❌ 设置跳转模式失败")
-        elif choice == '2':
-            custom_url = input("请输入自定义URL (例如: https://www.bilibili.com): ").strip()
-            if custom_url:
-                config['jump_mode'] = 'custom'
-                config['custom_url'] = custom_url
-                if save_auto_jump_config(config):
-                    record_history("设置跳转模式", f"自定义URL跳转模式: {custom_url}", "成功")
-                    print(f"✅ 已设置为自定义URL跳转模式: {custom_url}")
-                else:
-                    record_history("设置跳转模式", f"自定义URL跳转模式: {custom_url}", "失败")
-                    print("❌ 设置跳转模式失败")
-            else:
-                print("❌ 自定义URL不能为空")
-        else:
-            print("❌ 无效的选择")
-    except Exception as e:
-        print(f"❌ 设置跳转模式失败: {e}")
+    print("1. 🔍 搜索跳转（用歌名在 B 站搜索）")
+    print("2. 🔗 自定义 URL")
+    choice = input("请选择跳转模式: ").strip()
+    if choice == "1":
+        _update(mode="search")
+        record_operation("设置跳转模式", "搜索跳转模式")
+        print("✅ 已设为搜索跳转模式")
+    elif choice == "2":
+        custom_url = input("请输入自定义 URL（如 https://www.bilibili.com）: ").strip()
+        if not custom_url:
+            print("❌ URL 不能为空")
+            return
+        _update(mode="custom", custom_url=custom_url)
+        record_operation("设置跳转模式", f"自定义URL: {custom_url}")
+        print(f"✅ 已设为自定义 URL: {custom_url}")
+    else:
+        print("❌ 无效的选择")
+
 
 def set_jump_delay():
-    """设置跳转延时"""
-    config = load_auto_jump_config()
-    
-    print("\n⏰ 设置跳转延时 ⏰")
+    config = get_auto_jump_config()
+    print("\n⏰ 设置跳转延时")
     print("=" * 30)
-    print(f"当前延时: {config['jump_delay']}秒")
-    
+    print(f"当前延时: {config['delay']} 秒")
     try:
-        delay = int(input("请输入跳转延时 (1-60秒): ").strip())
-        if 1 <= delay <= 60:
-            config['jump_delay'] = delay
-            if save_auto_jump_config(config):
-                record_history("设置跳转延时", f"{delay}秒", "成功")
-                print(f"✅ 已设置跳转延时为 {delay}秒")
-            else:
-                record_history("设置跳转延时", f"{delay}秒", "失败")
-                print("❌ 设置跳转延时失败")
-        else:
-            print("❌ 延时必须在1-60秒之间")
+        delay = int(input("请输入跳转延时 (0-60 秒): ").strip())
     except ValueError:
         print("❌ 请输入有效的数字")
+        return
+    if not (0 <= delay <= 60):
+        print("❌ 延时必须在 0-60 秒之间")
+        return
+    _update(delay=delay)
+    record_operation("设置跳转延时", f"{delay}秒")
+    print(f"✅ 已设置跳转延时为 {delay} 秒")
+
 
 def auto_jump(song_info):
-    """自动跳转功能"""
-    config = load_auto_jump_config()
-    
-    if not config['auto_jump_enabled']:
+    """根据配置打开网页。任何异常都不应中断点歌主流程。"""
+    config = get_auto_jump_config()
+    if not config.get("enabled"):
         return
-    
-    print(f"\n⏰ 将在 {config['jump_delay']} 秒后自动跳转...")
-    time.sleep(config['jump_delay'])
-    
-    # 优先使用歌曲的URL
-    song_url = song_info.get('url_list', '').strip()
+
+    delay = int(config.get("delay", 3))
+    if delay > 0:
+        print(f"\n⏰ 将在 {delay} 秒后自动跳转...")
+        time.sleep(delay)
+
+    song_url = (song_info.get("url") or "").strip()
     if song_url:
         try:
             webbrowser.open(song_url)
-            record_history("自动跳转", f"歌曲URL: {song_url}", "成功")
-            print(f"✅ 已跳转到歌曲URL: {song_url}")
+            record_operation("自动跳转", f"歌曲URL: {song_url}")
+            print(f"✅ 已打开歌曲链接: {song_url}")
             return
-        except Exception as e:
-            print(f"❌ 跳转到歌曲URL失败: {e}")
-    
-    # 如果没有歌曲URL，根据配置跳转
-    if config['jump_mode'] == 'search':
-        # B站搜索跳转
-        song_name = song_info.get('song_name', '').strip()
-        artist = song_info.get('artist', '').strip()
-        
+        except Exception as exc:  # noqa: BLE001 - 不希望跳转失败影响主流程
+            print(f"⚠️ 打开歌曲链接失败: {exc}")
+
+    if config.get("mode") == "search":
+        song_name = (song_info.get("song_name") or "").strip()
+        artist = (song_info.get("artist") or "").strip()
         if song_name:
-            search_query = f"{song_name} {artist}".strip()
-            bilibili_search_url = f"https://search.bilibili.com/all?keyword={search_query}"
+            from urllib.parse import quote
+
+            query = f"{song_name} {artist}".strip()
+            url = f"https://search.bilibili.com/all?keyword={quote(query)}"
             try:
-                webbrowser.open(bilibili_search_url)
-                record_history("自动跳转", f"B站搜索: {search_query}", "成功")
-                print(f"✅ 已跳转到B站搜索: {search_query}")
-            except Exception as e:
-                print(f"❌ 跳转到B站搜索失败: {e}")
-    
-    elif config['jump_mode'] == 'custom' and config['custom_url']:
-        # 自定义URL跳转
+                webbrowser.open(url)
+                record_operation("自动跳转", f"B站搜索: {query}")
+                print(f"✅ 已打开 B 站搜索: {query}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"⚠️ 打开搜索页失败: {exc}")
+    elif config.get("mode") == "custom" and config.get("custom_url"):
         try:
-            webbrowser.open(config['custom_url'])
-            record_history("自动跳转", f"自定义URL: {config['custom_url']}", "成功")
-            print(f"✅ 已跳转到自定义URL: {config['custom_url']}")
-        except Exception as e:
-            print(f"❌ 跳转到自定义URL失败: {e}")
+            webbrowser.open(config["custom_url"])
+            record_operation("自动跳转", f"自定义URL: {config['custom_url']}")
+            print(f"✅ 已打开自定义 URL: {config['custom_url']}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"⚠️ 打开自定义 URL 失败: {exc}")
+
 
 def view_auto_jump_settings():
-    """查看自动跳转设置"""
-    config = load_auto_jump_config()
-    
-    print("\n🌐 自动网页跳转设置 🌐")
+    config = get_auto_jump_config()
+    mode = "🔍 搜索跳转" if config.get("mode") == "search" else f"🔗 自定义 URL: {config.get('custom_url')}"
+    print("\n🌐 自动网页跳转设置")
     print("=" * 40)
-    
-    status = "✅ 启用" if config['auto_jump_enabled'] else "❌ 禁用"
-    mode_text = "🔍 搜索跳转" if config['jump_mode'] == 'search' else f"🔗 自定义URL: {config['custom_url']}"
-    
-    print(f"当前状态: {status}")
-    print(f"跳转模式: {mode_text}")
-    print(f"跳转延时: {config['jump_delay']}秒")
+    print(f"当前状态: {'✅ 启用' if config.get('enabled') else '❌ 关闭'}")
+    print(f"跳转模式: {mode}")
+    print(f"跳转延时: {config.get('delay', 3)} 秒")
     print("=" * 40)
 
+
 def auto_jump_menu():
-    """自动跳转设置菜单"""
     while True:
-        config = load_auto_jump_config()
-        status = "✅ 启用" if config['auto_jump_enabled'] else "❌ 禁用"
-        
-        print(f"\n🌐 自动网页跳转设置 🌐 (当前状态: {status})")
+        config = get_auto_jump_config()
+        state = "✅ 启用" if config.get("enabled") else "❌ 关闭"
+        print(f"\n🌐 自动网页跳转设置（当前状态: {state}）")
         print("=" * 40)
         print("1. 启用自动跳转")
         print("2. 关闭自动跳转")
@@ -165,20 +135,18 @@ def auto_jump_menu():
         print("4. 设置跳转延时")
         print("5. 查看当前设置")
         print("6. 返回设置菜单")
-        
         choice = input("请选择操作: ").strip()
-        
-        if choice == '1':
+        if choice == "1":
             enable_auto_jump()
-        elif choice == '2':
+        elif choice == "2":
             disable_auto_jump()
-        elif choice == '3':
+        elif choice == "3":
             set_jump_mode()
-        elif choice == '4':
+        elif choice == "4":
             set_jump_delay()
-        elif choice == '5':
+        elif choice == "5":
             view_auto_jump_settings()
-        elif choice == '6':
+        elif choice == "6":
             break
         else:
             print("❌ 无效的选择，请重新输入")

@@ -1,92 +1,109 @@
-import json
-import datetime
-import os
+"""
+历史记录：操作历史与播放历史。
 
-def record_history(action_type, action_details, playlist_id=None, result="成功"):
-    """记录操作历史到文件"""
-    history_record = {
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "action": action_type,
-        "details": action_details,
-        "result": result
-    }
-    
-    # 确定目标歌单ID
-    target_playlist_id = playlist_id if playlist_id else get_current_playlist_id()
-    
-    # 构建历史记录文件路径
-    history_file_path = f"main_data/{target_playlist_id}/history_records.log"
-    
-    # 确保目录存在
-    os.makedirs(os.path.dirname(history_file_path), exist_ok=True)
-    
+同时写入「当前歌单」的日志和全局日志，便于单歌单排查与整体追溯。
+日志为纯文本，一行一条，方便直接用记事本查看。
+"""
+
+import datetime
+
+import paths
+from storage import append_line, load_yaml, read_lines, save_yaml
+
+
+def _timestamp():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _resolve_playlist(playlist_id):
+    if playlist_id:
+        return playlist_id
+    from config_manager import get_current_playlist_id
+
+    return get_current_playlist_id()
+
+
+def record_operation(action, details="", result="成功", playlist_id=None):
+    """记录一次操作，写入歌单级与全局操作日志。"""
+    pid = _resolve_playlist(playlist_id)
+    line = f"[{_timestamp()}] {action} - {details} - 结果: {result}"
     try:
-        # 尝试读取现有历史记录
-        with open(history_file_path, 'r', encoding='utf-8') as f:
-            history_data = json.load(f)
-            history_data.append(history_record)
-            
-            # 保存更新后的历史记录
-            with open(history_file_path, 'w', encoding='utf-8') as f_out:
-                json.dump(history_data, f_out, ensure_ascii=False, indent=2)
-            return True
-    except FileNotFoundError:
-        # 文件不存在，创建新文件
-        try:
-            with open(history_file_path, 'w', encoding='utf-8') as f_out:
-                json.dump([history_record], f_out, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"创建历史记录文件失败: {e}")
-            return False
-    except json.JSONDecodeError:
-        # 文件存在但格式错误，重新创建
-        try:
-            with open(history_file_path, 'w', encoding='utf-8') as f_out:
-                json.dump([history_record], f_out, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"修复历史记录文件失败: {e}")
-            return False
-    except Exception as e:
-        print(f"记录历史失败: {e}")
+        if pid:
+            append_line(paths.playlist_operate_history_file(pid), line)
+        append_line(paths.GLOBAL_OPERATE_HISTORY_FILE, f"[{pid or '-'}] {line}")
+        return True
+    except OSError as exc:
+        print(f"[警告] 写入操作历史失败: {exc}")
         return False
 
-def view_history(playlist_id=None):
-    """查看历史记录"""
-    # 确定目标歌单ID
-    target_playlist_id = playlist_id if playlist_id else get_current_playlist_id()
-    
-    # 构建历史记录文件路径
-    history_file_path = f"main_data/{target_playlist_id}/history_records.log"
-    
-    try:
-        with open(history_file_path, 'r', encoding='utf-8') as f:
-            history_data = json.load(f)
-            
-            if not history_data:
-                print("暂无历史记录")
-                return
-            
-            print(f"\n📜 歌单 '{target_playlist_id}' 操作历史记录 📜")
-            print("=" * 60)
-            for i, record in enumerate(history_data, 1):
-                print(f"{i}. [{record['timestamp']}] {record['action']}")
-                print(f"   详情: {record['details']}")
-                print(f"   结果: {record['result']}")
-                print("-" * 40)
-    except FileNotFoundError:
-        print("暂无历史记录")
-    except json.JSONDecodeError:
-        print(f"历史记录文件已损坏: {history_file_path}")
-    except Exception as e:
-        print(f"读取历史记录失败: {e}")
 
-def get_current_playlist_id():
-    """获取当前歌单ID"""
+def record_play(song, playlist_id=None):
+    """记录一次播放，写入歌单级与全局播放日志，并累加系统统计。"""
+    pid = _resolve_playlist(playlist_id)
+    song_name = (song or {}).get("song_name", "未知")
+    artist = (song or {}).get("artist", "") or "未知"
+    requester = (song or {}).get("requested_by", "") or "未知"
+    line = f"[{_timestamp()}] 播放 - 歌曲: {song_name} - 歌手: {artist} - 点歌人: {requester}"
     try:
-        from config_manager import load_playlist_config
-        config = load_playlist_config()
-        return config.get("current_playlist", "play_list_1")
-    except ImportError:
-        return "play_list_1"  # 默认歌单ID
+        if pid:
+            append_line(paths.playlist_play_history_file(pid), line)
+        append_line(paths.GLOBAL_PLAY_HISTORY_FILE, f"[{pid or '-'}] {line}")
+    except OSError as exc:
+        print(f"[警告] 写入播放历史失败: {exc}")
+    _increment_play_count()
+    return True
+
+
+def _increment_play_count():
+    stats = load_yaml(paths.SYSTEM_STATS_FILE, default={})
+    if not isinstance(stats, dict):
+        stats = {}
+    stats["total_plays"] = int(stats.get("total_plays", 0)) + 1
+    stats["last_play_time"] = _timestamp()
+    try:
+        save_yaml(paths.SYSTEM_STATS_FILE, stats)
+    except OSError:
+        pass
+
+
+def get_play_count():
+    stats = load_yaml(paths.SYSTEM_STATS_FILE, default={})
+    if not isinstance(stats, dict):
+        return 0
+    return int(stats.get("total_plays", 0))
+
+
+def view_operation_history(playlist_id=None, limit=50):
+    """显示操作历史（歌单级优先，回落到全局）。"""
+    pid = _resolve_playlist(playlist_id)
+    lines = read_lines(paths.playlist_operate_history_file(pid), limit=limit, newest_first=True) if pid else []
+    scope = f"歌单 '{pid}'"
+    if not lines:
+        lines = read_lines(paths.GLOBAL_OPERATE_HISTORY_FILE, limit=limit, newest_first=True)
+        scope = "全局"
+    print(f"\n📜 操作历史记录（{scope}，最近 {limit} 条）")
+    print("=" * 60)
+    if not lines:
+        print("暂无操作记录")
+    else:
+        for index, line in enumerate(lines, 1):
+            print(f"{index}. {line}")
+    print("=" * 60)
+
+
+def view_play_history(playlist_id=None, limit=50):
+    """显示播放历史（歌单级优先，回落到全局）。"""
+    pid = _resolve_playlist(playlist_id)
+    lines = read_lines(paths.playlist_play_history_file(pid), limit=limit, newest_first=True) if pid else []
+    scope = f"歌单 '{pid}'"
+    if not lines:
+        lines = read_lines(paths.GLOBAL_PLAY_HISTORY_FILE, limit=limit, newest_first=True)
+        scope = "全局"
+    print(f"\n🎧 播放历史记录（{scope}，最近 {limit} 条）")
+    print("=" * 60)
+    if not lines:
+        print("暂无播放记录")
+    else:
+        for index, line in enumerate(lines, 1):
+            print(f"{index}. {line}")
+    print("=" * 60)

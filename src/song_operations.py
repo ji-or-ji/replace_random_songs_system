@@ -1,240 +1,208 @@
-import json
-from song_manager import load_songs, save_songs, get_next_song_id, filter_valid_songs
-from requester_manager import get_requester_list
-from history_manager import record_history
-from config_manager import load_playlist_config
+"""
+歌曲管理菜单：增 / 改 / 删 / 查。
+"""
+
+from config_manager import get_current_playlist_id, playlist_name
+from history_manager import record_operation
+from requester_manager import get_requester_names
+from song_manager import (
+    filter_valid_songs,
+    load_songs,
+    new_song_id,
+    save_songs,
+)
+
+
+def _now_str():
+    import datetime
+
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
 def add_song():
-    """添加歌曲"""
-    config = load_playlist_config()
-    current_playlist_id = config['current_playlist']
-    playlist_name = config['playlists'][current_playlist_id]['name']
-    
-    songs = load_songs()
-    requesters = get_requester_list()
-    
-    print(f"\n🎵 添加歌曲 (歌单: {playlist_name}) 🎵")
+    pid = get_current_playlist_id()
+    songs = load_songs(pid)
+    requesters = get_requester_names(pid)
+    print(f"\n🎵 添加歌曲（歌单: {playlist_name(pid)}）")
     print("=" * 40)
-    
-    # 获取歌曲信息
+
     while True:
         song_name = input("请输入歌曲名称: ").strip()
-        if not song_name:
-            print("歌曲名称不能为空，请重新输入")
-            continue
-        break
-    
-    artist = input("请输入歌手名称 (可选): ").strip()
-    url_list = input("请输入歌曲链接 (可选): ").strip()
-    
-    # 选择点歌人
+        if song_name:
+            break
+        print("歌曲名称不能为空，请重新输入")
+    artist = input("请输入歌手名称（可留空）: ").strip()
+    url = input("请输入歌曲链接（可留空）: ").strip()
+
     requested_by = "未知"
     if requesters:
         print("\n👥 请选择点歌人:")
         print("0. 未知")
-        for i, requester in enumerate(requesters, 1):
-            print(f"{i}. {requester}")
-        
+        for index, requester in enumerate(requesters, 1):
+            print(f"{index}. {requester}")
         try:
-            choice = int(input("请选择点歌人编号: ").strip())
-            if choice == 0:
-                requested_by = "未知"
-            elif 1 <= choice <= len(requesters):
+            choice = int(input("请选择点歌人编号: ").strip() or "0")
+            if 0 < choice <= len(requesters):
                 requested_by = requesters[choice - 1]
-            else:
-                print("❌ 无效的选择，将使用'未知'")
         except ValueError:
-            print("❌ 请输入有效的数字，将使用'未知'")
+            print("❌ 输入无效，将记为「未知」")
     else:
-        requested_by = input("请输入点歌人姓名 (可选): ").strip() or "未知"
-    
-    # 创建新歌曲
-    new_song = {
-        "id": get_next_song_id(songs),
+        requested_by = input("请输入点歌人姓名（可留空）: ").strip() or "未知"
+
+    now = _now_str()
+    song = {
+        "id": new_song_id(),
         "song_name": song_name,
         "artist": artist,
-        "url_list": url_list,
-        "requested_by": requested_by
+        "url": url,
+        "requested_by": requested_by,
+        "created_at": now,
+        "last_modified": now,
     }
-    
-    songs.append(new_song)
-    
-    if save_songs(songs):
-        record_history("添加歌曲", f"歌曲: {song_name} - 歌手: {artist} - 点歌人: {requested_by}", "成功")
-        print(f"✅ 成功添加歌曲: {song_name}")
+    songs.append(song)
+    if save_songs(songs, pid):
+        record_operation(
+            "添加歌曲",
+            f"歌曲: {song_name} - 歌手: {artist} - 点歌人: {requested_by}",
+            playlist_id=pid,
+        )
+        print(f"✅ 已添加歌曲: {song_name}")
     else:
-        record_history("添加歌曲", f"歌曲: {song_name} - 歌手: {artist} - 点歌人: {requested_by}", "失败")
+        record_operation("添加歌曲", f"歌曲: {song_name}", result="失败", playlist_id=pid)
         print("❌ 添加歌曲失败")
 
+
 def modify_song():
-    """修改歌曲"""
-    config = load_playlist_config()
-    current_playlist_id = config['current_playlist']
-    playlist_name = config['playlists'][current_playlist_id]['name']
-    
-    songs = load_songs()
+    pid = get_current_playlist_id()
+    songs = load_songs(pid)
     valid_songs = filter_valid_songs(songs)
-    
     if not valid_songs:
         print("❌ 当前没有有效歌曲")
         return
-    
-    print(f"\n🎵 修改歌曲 (歌单: {playlist_name}) 🎵")
+
+    print(f"\n🎵 修改歌曲（歌单: {playlist_name(pid)}）")
     print("=" * 40)
-    print("当前歌曲列表:")
-    
-    for i, song in enumerate(valid_songs, 1):
-        artist = song.get('artist', '未知')
-        requester = song.get('requested_by', '未知')
-        print(f"{i}. {song['song_name']} - {artist} (点歌人: {requester})")
-    
+    for index, song in enumerate(valid_songs, 1):
+        print(f"{index}. {song['song_name']} - {song.get('artist') or '未知'}（点歌人: {song.get('requested_by') or '未知'}）")
     try:
-        choice = int(input("\n请选择要修改的歌曲编号: "))
-        if 1 <= choice <= len(valid_songs):
-            song_to_modify = valid_songs[choice - 1]
-            original_song_name = song_to_modify['song_name']
-            
-            print(f"\n正在修改歌曲: {original_song_name}")
-            print("=" * 30)
-            
-            # 获取新的歌曲信息
-            new_song_name = input(f"请输入新的歌曲名称 (原: {song_to_modify['song_name']}): ").strip()
-            if new_song_name:
-                song_to_modify['song_name'] = new_song_name
-            
-            new_artist = input(f"请输入新的歌手名称 (原: {song_to_modify.get('artist', '')}): ").strip()
-            song_to_modify['artist'] = new_artist
-            
-            new_url = input(f"请输入新的歌曲链接 (原: {song_to_modify.get('url_list', '')}): ").strip()
-            song_to_modify['url_list'] = new_url
-            
-            # 选择新的点歌人
-            requesters = get_requester_list()
-            if requesters:
-                print("\n👥 请选择新的点歌人:")
-                print(f"0. 保持原值: {song_to_modify.get('requested_by', '未知')}")
-                for i, requester in enumerate(requesters, 1):
-                    print(f"{i}. {requester}")
-                
-                try:
-                    requester_choice = int(input("请选择点歌人编号: ").strip())
-                    if requester_choice != 0 and 1 <= requester_choice <= len(requesters):
-                        song_to_modify['requested_by'] = requesters[requester_choice - 1]
-                except ValueError:
-                    print("❌ 请输入有效的数字，将保持原值")
-            
-            if save_songs(songs):
-                record_history("修改歌曲", f"歌曲: {original_song_name} -> {new_song_name}", "成功")
-                print(f"✅ 成功修改歌曲: {original_song_name} -> {new_song_name}")
-            else:
-                record_history("修改歌曲", f"歌曲: {original_song_name} -> {new_song_name}", "失败")
-                print("❌ 修改歌曲失败")
-        else:
-            print("❌ 无效的选择")
+        choice = int(input("\n请选择要修改的歌曲编号: ").strip())
     except ValueError:
         print("❌ 请输入有效的数字")
+        return
+    if not (1 <= choice <= len(valid_songs)):
+        print("❌ 无效的选择")
+        return
+
+    target = valid_songs[choice - 1]
+    original_name = target["song_name"]
+    print(f"\n正在修改: {original_name}（直接回车表示不修改）")
+
+    new_name = input(f"新的歌曲名称（原: {target['song_name']}）: ").strip()
+    if new_name:
+        target["song_name"] = new_name
+    new_artist = input(f"新的歌手（原: {target.get('artist') or '空'}）: ").strip()
+    if new_artist:
+        target["artist"] = new_artist
+    new_url = input(f"新的链接（原: {target.get('url') or '空'}）: ").strip()
+    if new_url:
+        target["url"] = new_url
+
+    requesters = get_requester_names(pid)
+    if requesters:
+        print(f"\n0. 保持原值: {target.get('requested_by') or '未知'}")
+        for index, requester in enumerate(requesters, 1):
+            print(f"{index}. {requester}")
+        try:
+            requester_choice = int(input("请选择点歌人编号: ").strip() or "0")
+            if 0 < requester_choice <= len(requesters):
+                target["requested_by"] = requesters[requester_choice - 1]
+        except ValueError:
+            print("❌ 输入无效，保持原值")
+
+    target["last_modified"] = _now_str()
+    if save_songs(songs, pid):
+        record_operation(
+            "修改歌曲", f"歌曲: {original_name} -> {target['song_name']}", playlist_id=pid
+        )
+        print(f"✅ 已修改歌曲: {original_name} -> {target['song_name']}")
+    else:
+        record_operation("修改歌曲", f"歌曲: {original_name}", result="失败", playlist_id=pid)
+        print("❌ 修改歌曲失败")
+
 
 def delete_song():
-    """删除歌曲"""
-    config = load_playlist_config()
-    current_playlist_id = config['current_playlist']
-    playlist_name = config['playlists'][current_playlist_id]['name']
-    
-    songs = load_songs()
+    pid = get_current_playlist_id()
+    songs = load_songs(pid)
     valid_songs = filter_valid_songs(songs)
-    
     if not valid_songs:
         print("❌ 当前没有有效歌曲")
         return
-    
-    print(f"\n🎵 删除歌曲 (歌单: {playlist_name}) 🎵")
+
+    print(f"\n🎵 删除歌曲（歌单: {playlist_name(pid)}）")
     print("=" * 40)
-    print("当前歌曲列表:")
-    
-    for i, song in enumerate(valid_songs, 1):
-        artist = song.get('artist', '未知')
-        requester = song.get('requested_by', '未知')
-        print(f"{i}. {song['song_name']} - {artist} (点歌人: {requester})")
-    
+    for index, song in enumerate(valid_songs, 1):
+        print(f"{index}. {song['song_name']} - {song.get('artist') or '未知'}（点歌人: {song.get('requested_by') or '未知'}）")
     try:
-        choice = int(input("\n请选择要删除的歌曲编号: "))
-        if 1 <= choice <= len(valid_songs):
-            song_to_delete = valid_songs[choice - 1]
-            
-            # 确认删除
-            confirm = input(f"确定要删除歌曲 '{song_to_delete['song_name']}' 吗? (y/N): ").strip().lower()
-            if confirm == 'y':
-                # 从原列表中删除
-                songs = [song for song in songs if song.get('id') != song_to_delete.get('id')]
-                
-                if save_songs(songs):
-                    record_history("删除歌曲", f"歌曲: {song_to_delete['song_name']}", "成功")
-                    print(f"✅ 成功删除歌曲: {song_to_delete['song_name']}")
-                else:
-                    record_history("删除歌曲", f"歌曲: {song_to_delete['song_name']}", "失败")
-                    print("❌ 删除歌曲失败")
-            else:
-                print("取消删除")
-        else:
-            print("❌ 无效的选择")
+        choice = int(input("\n请选择要删除的歌曲编号: ").strip())
     except ValueError:
         print("❌ 请输入有效的数字")
+        return
+    if not (1 <= choice <= len(valid_songs)):
+        print("❌ 无效的选择")
+        return
+
+    target = valid_songs[choice - 1]
+    if input(f"确定删除歌曲 '{target['song_name']}' 吗？(y/N): ").strip().lower() != "y":
+        print("取消删除")
+        return
+
+    songs = [song for song in songs if song.get("id") != target.get("id")]
+    if save_songs(songs, pid):
+        record_operation("删除歌曲", f"歌曲: {target['song_name']}", playlist_id=pid)
+        print(f"✅ 已删除歌曲: {target['song_name']}")
+    else:
+        record_operation("删除歌曲", f"歌曲: {target['song_name']}", result="失败", playlist_id=pid)
+        print("❌ 删除歌曲失败")
+
 
 def view_all_songs():
-    """查看所有歌曲"""
-    config = load_playlist_config()
-    current_playlist_id = config['current_playlist']
-    playlist_name = config['playlists'][current_playlist_id]['name']
-    
-    songs = load_songs()
-    valid_songs = filter_valid_songs(songs)
-    
-    print(f"\n🎵 所有歌曲列表 (歌单: {playlist_name}) 🎵")
+    pid = get_current_playlist_id()
+    songs = filter_valid_songs(load_songs(pid))
+    print(f"\n🎵 所有歌曲列表（歌单: {playlist_name(pid)}）")
     print("=" * 60)
-    
-    if not valid_songs:
+    if not songs:
         print("暂无歌曲")
     else:
-        for i, song in enumerate(valid_songs, 1):
-            artist = song.get('artist', '未知')
-            requester = song.get('requested_by', '未知')
-            url = song.get('url_list', '无')
-            
-            print(f"{i}. {song['song_name']}")
-            print(f"   歌手: {artist}")
-            print(f"   点歌人: {requester}")
-            print(f"   链接: {url}")
+        for index, song in enumerate(songs, 1):
+            print(f"{index}. {song['song_name']}")
+            print(f"   歌手: {song.get('artist') or '未知'}")
+            print(f"   点歌人: {song.get('requested_by') or '未知'}")
+            print(f"   链接: {song.get('url') or '无'}")
             print("-" * 40)
-    
-    print(f"\n📊 统计: 共 {len(valid_songs)} 首有效歌曲")
+    print(f"\n📊 共 {len(songs)} 首有效歌曲")
     print("=" * 60)
 
+
 def song_management_menu():
-    """歌曲管理菜单"""
     while True:
-        config = load_playlist_config()
-        current_playlist_id = config['current_playlist']
-        playlist_name = config['playlists'][current_playlist_id]['name']
-        
-        print(f"\n🎵 歌曲管理 🎵 (当前歌单: {playlist_name})")
+        pid = get_current_playlist_id()
+        print(f"\n🎵 歌曲管理（当前歌单: {playlist_name(pid)}）")
         print("=" * 30)
         print("1. 添加歌曲")
         print("2. 修改歌曲")
         print("3. 删除歌曲")
         print("4. 查看所有歌曲")
         print("5. 返回主菜单")
-        
         choice = input("请选择操作: ").strip()
-        
-        if choice == '1':
+        if choice == "1":
             add_song()
-        elif choice == '2':
+        elif choice == "2":
             modify_song()
-        elif choice == '3':
+        elif choice == "3":
             delete_song()
-        elif choice == '4':
+        elif choice == "4":
             view_all_songs()
-        elif choice == '5':
+        elif choice == "5":
             break
         else:
             print("❌ 无效的选择，请重新输入")
