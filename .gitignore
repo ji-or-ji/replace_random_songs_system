@@ -15,7 +15,6 @@ lib64/
 parts/
 sdist/
 var/
-wheels/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -28,6 +27,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+_install_test/
 
 # IDE
 .vscode/
@@ -39,13 +39,14 @@ venv.bak/
 Thumbs.db
 
 # Project specific
-main_data/             # 运行时数据目录（不应上传到版本控制）
-!main_data/.gitkeep    # 保留目录结构（如果需要的话）
-*.log                  # 日志文件
-*.log.*                # 滚动日志
-*.tmp                  # 临时文件
-*.temp                 # 临时文件
-.cache/                # 缓存目录
+# 运行时数据目录（首次运行会自动生成，不入库）
+main_data/
+# 日志与临时文件
+*.log
+*.log.*
+*.tmp
+*.temp
+.cache/
 .spotlight-*
 
 # 测试覆盖报告
@@ -55,11 +56,11 @@ htmlcov/
 .pytest_cache/
 
 # 配置文件（敏感信息）
-config.yaml            # 如果有的话
-local_config.yaml      # 本地配置
-secrets.yaml           # 密钥文件
+config.yaml
+local_config.yaml
+secrets.yaml
 
-# 数据库文件（如果未来添加数据库支持）
+# 数据库文件
 *.db
 *.sqlite
 *.sqlite3
@@ -77,5 +78,6 @@ secrets.yaml           # 密钥文件
 
 # 备份文件
 backup/
+backups/
 *.bak
 *.backup

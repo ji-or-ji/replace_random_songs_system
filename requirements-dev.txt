@@ -1,0 +1,2 @@
+# 开发依赖（含运行依赖）
+-r requirements.txt
