@@ -108,6 +108,9 @@ python run.py
 | `--gui` / `--menu` | 打开交互式主菜单 |
 | `-p, --playlist <歌单>` | 指定歌单（ID 或名称），默认当前歌单 |
 | `-n, --count <N>` | 抽取数量，默认 1 |
+| `--import-folder <目录>` | 从文件夹批量导入歌曲（自动识别歌名 / 歌手） |
+| `--recursive` | 导入文件夹时包含子文件夹 |
+| `--order artist\|title` | 文件名顺序：artist=歌手-歌名（默认），title=歌名-歌手 |
 | `--jump` / `--no-jump` | 本次强制开启 / 关闭自动跳转 |
 | `--jump-mode search\|custom` | 覆盖跳转模式 |
 | `--url <URL>` | 自定义跳转地址（隐含 custom 模式，支持 `{query}`/`{song}`/`{artist}` 占位符） |
@@ -220,8 +223,9 @@ dotnet run --project src\RandomSongs.App
 
 ### 歌单管理
 
-支持：从外部文件导入、从 QQ 音乐歌单导入、创建空白歌单、删除、切换、查看。
+支持：从外部文件导入、**从文件夹批量导入**、从 QQ 音乐歌单导入、创建空白歌单、删除、切换、查看。
 外部文件支持 `.yaml / .yml / .json`（含 `songs` 列表）以及 `.txt`（每行 `歌名 - 歌手`）。
+从文件夹导入会扫描音频文件，并按文件名识别歌名 / 歌手（详见「文件名解析」）。
 
 ## 自动跳转机制
 

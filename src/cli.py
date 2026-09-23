@@ -13,6 +13,7 @@
 import argparse
 import datetime
 import json
+import os
 import sys
 
 from console_utils import setup_console
@@ -47,6 +48,12 @@ def build_parser():
 
     parser.add_argument("-p", "--playlist", metavar="歌单", help="指定歌单（ID 或名称），默认当前歌单")
     parser.add_argument("-n", "--count", type=int, default=1, metavar="N", help="抽取数量，默认 1")
+
+    folder = parser.add_argument_group("文件夹导入")
+    folder.add_argument("--import-folder", metavar="目录", help="从文件夹批量导入歌曲（自动识别歌名/歌手）")
+    folder.add_argument("--recursive", action="store_true", help="导入文件夹时包含子文件夹")
+    folder.add_argument("--order", choices=["artist", "title"], default="artist",
+                        help="文件名顺序：artist=歌手-歌名（默认），title=歌名-歌手")
 
     jump = parser.add_argument_group("跳转相关")
     onoff = jump.add_mutually_exclusive_group()
@@ -231,6 +238,65 @@ def run_headless(args):
     return EXIT_OK
 
 
+def run_folder_import(args):
+    """文件夹批量导入：扫描目录、解析文件名、写入歌单。"""
+    from config_manager import get_current_playlist_id, playlist_name
+    from folder_importer import (
+        collect_known_artists,
+        import_as_new_playlist,
+        import_into_playlist,
+        scan_folder,
+    )
+    from main import initialize_system
+
+    initialize_system(quiet=True)
+
+    folder = args.import_folder
+    if not os.path.isdir(folder):
+        print(f"错误：文件夹不存在 '{folder}'", file=sys.stderr)
+        return EXIT_ERROR
+
+    parsed = scan_folder(
+        folder,
+        recursive=args.recursive,
+        artist_first=(args.order == "artist"),
+        known_artists=collect_known_artists(),
+    )
+    if not parsed:
+        print("错误：该文件夹里没有音频文件", file=sys.stderr)
+        return EXIT_ERROR
+
+    target = resolve_playlist(args.playlist) if args.playlist else None
+    if target:
+        added = import_into_playlist(target, parsed)
+        playlist_id = target
+        created = False
+    else:
+        name = args.playlist or os.path.basename(os.path.normpath(folder)) or "文件夹导入"
+        playlist_id, added = import_as_new_playlist(name, folder, parsed)
+        created = True
+
+    if args.json:
+        print(json.dumps({
+            "ok": True,
+            "playlist": playlist_id,
+            "playlist_name": playlist_name(playlist_id),
+            "created": created,
+            "parsed": len(parsed),
+            "added": added,
+            "songs": [
+                {"song_name": p["song_name"], "artist": p["artist"], "file": p["file_path"]}
+                for p in parsed
+            ],
+        }, ensure_ascii=False))
+    elif args.quiet:
+        print(added)
+    else:
+        verb = "导入为新歌单" if created else "合并进当前歌单"
+        print(f"解析 {len(parsed)} 个音频文件，{verb}「{playlist_name(playlist_id)}」：新增 {added} 首")
+    return EXIT_OK
+
+
 def main(argv=None):
     setup_console()
     parser = build_parser()
@@ -238,6 +304,9 @@ def main(argv=None):
 
     if args.list_playlists:
         return list_playlists(args.json)
+
+    if args.import_folder:
+        return run_folder_import(args)
 
     if args.gui:
         import main as app_main

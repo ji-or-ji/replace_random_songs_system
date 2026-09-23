@@ -252,28 +252,33 @@ def playlist_menu():
         print(f"\n🎵 歌单管理（当前歌单: {playlist_name(get_current_playlist_id())}）")
         print("=" * 40)
         print("1. 从外部文件导入")
-        print("2. 从 QQ 音乐歌单导入")
-        print("3. 创建空白歌单")
-        print("4. 删除歌单")
-        print("5. 切换歌单")
-        print("6. 查看所有歌单")
-        print("7. 返回设置菜单")
+        print("2. 从文件夹批量导入")
+        print("3. 从 QQ 音乐歌单导入")
+        print("4. 创建空白歌单")
+        print("5. 删除歌单")
+        print("6. 切换歌单")
+        print("7. 查看所有歌单")
+        print("8. 返回设置菜单")
         choice = input("请选择操作: ").strip()
         if choice == "1":
             import_external_playlist()
         elif choice == "2":
+            from folder_importer import import_folder_interactive
+
+            import_folder_interactive()
+        elif choice == "3":
             from qq_importer import import_qq_playlist_interactive
 
             import_qq_playlist_interactive()
-        elif choice == "3":
-            create_playlist()
         elif choice == "4":
-            delete_playlist()
+            create_playlist()
         elif choice == "5":
-            switch_playlist()
+            delete_playlist()
         elif choice == "6":
-            view_all_playlists()
+            switch_playlist()
         elif choice == "7":
+            view_all_playlists()
+        elif choice == "8":
             break
         else:
             print("❌ 无效的选择，请重新输入")
