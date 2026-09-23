@@ -186,6 +186,83 @@ public sealed partial class PlaylistsPage : Page
         }
     }
 
+    private async void Restore_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new Windows.Storage.Pickers.FileOpenPicker();
+        if (App.Instance is not null)
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Instance);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        }
+        picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+        picker.FileTypeFilter.Add(".zip");
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        BackupInfo info;
+        try
+        {
+            info = BackupService.Inspect(file.Path);
+        }
+        catch (Exception ex)
+        {
+            BackupInfo.Text = $"读取备份失败：{ex.Message}";
+            return;
+        }
+        if (info.Kind == BackupKind.Unknown)
+        {
+            BackupInfo.Text = "无法识别的备份文件（既不是整库备份，也不是单歌单备份）";
+            return;
+        }
+
+        var what = info.Kind == BackupKind.Full
+            ? $"整库备份（{info.EntryCount} 个文件）"
+            : $"单歌单备份（歌单 ID: {info.PlaylistId}，{info.EntryCount} 个文件）";
+        var effect = info.Kind == BackupKind.Full
+            ? "确定要用这份整库备份【覆盖当前全部数据】吗？现有数据会被替换。（恢复前会自动再做一次安全备份）"
+            : $"确定要用这份备份【覆盖歌单「{info.PlaylistId}」】吗？（覆盖前会自动再备份一次）";
+
+        var confirm = new ContentDialog
+        {
+            Title = "从备份恢复",
+            Content = $"{what}\n\n{effect}",
+            PrimaryButtonText = "恢复",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot,
+        };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        try
+        {
+            if (info.Kind == BackupKind.Full)
+            {
+                var safety = BackupService.RestoreAll(file.Path);
+                HistoryService.RecordOperation(
+                    "从备份恢复", $"整库: {file.Name}（恢复前安全备份: {System.IO.Path.GetFileName(safety)}）");
+                BackupInfo.Text = $"已恢复整库。恢复前的数据已备份到：{safety}";
+            }
+            else
+            {
+                var (playlistId, files) = BackupService.RestorePlaylist(file.Path);
+                HistoryService.RecordOperation("从备份恢复", $"歌单: {playlistId}, 文件: {files}", playlistId: playlistId);
+                BackupInfo.Text = $"已恢复歌单「{playlistId}」：{files} 个文件";
+            }
+            Load();
+        }
+        catch (Exception ex)
+        {
+            BackupInfo.Text = $"恢复失败：{ex.Message}";
+        }
+    }
+
     private async void ImportFile_Click(object sender, RoutedEventArgs e)
     {
         var picker = new Windows.Storage.Pickers.FileOpenPicker();

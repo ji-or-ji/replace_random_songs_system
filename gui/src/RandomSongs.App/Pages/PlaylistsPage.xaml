@@ -55,6 +55,7 @@
                 <Button Content="从 QQ 歌单导入" Click="ImportQq_Click" />
                 <Button Content="备份本歌单" Click="BackupOne_Click" />
                 <Button Content="备份全部" Click="BackupAll_Click" />
+                <Button Content="从备份恢复" Click="Restore_Click" />
             </StackPanel>
             <TextBlock x:Name="BackupInfo" FontSize="12" Opacity="0.7" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
         </StackPanel>

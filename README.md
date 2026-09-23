@@ -372,13 +372,15 @@ python run_tests.py
 python scripts/migrate_json_to_yaml.py <旧文件路径> <目标歌单名>
 ```
 
-## 备份
+## 备份与恢复
 
 ```bat
-python scripts/backup_data.py
+python scripts/backup_data.py                  # 备份整个 main_data
+python scripts\restore_data.py <备份.zip>      # 从备份恢复（自动识别整库/单歌单，交互确认）
 ```
 
-会在 `backups/` 下生成带时间戳的 `main_data_*.zip`。
+备份会在 `backups/` 下生成带时间戳的 zip。`restore_data.py` 会自动识别备份类型：
+整库备份会覆盖 `main_data`（恢复前自动再做一次安全备份），单歌单备份只覆盖对应歌单。
 
 ## 许可证
 
