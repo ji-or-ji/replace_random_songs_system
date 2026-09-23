@@ -31,12 +31,16 @@ def normalize_song(raw):
     if "url" not in song and "url_list" in song:
         song["url"] = song.pop("url_list")
         changed = True
+    # 兼容旧字段名 local_file
+    if "local_path" not in song and "local_file" in song:
+        song["local_path"] = song.pop("local_file")
+        changed = True
     # 旧版 url 可能是列表
     if isinstance(song.get("url"), (list, tuple)):
         song["url"] = song["url"][0] if song["url"] else ""
         changed = True
 
-    for key in ("song_name", "artist", "url", "requested_by"):
+    for key in ("song_name", "artist", "url", "requested_by", "local_path"):
         if not isinstance(song.get(key), str):
             song[key] = "" if song.get(key) is None else str(song[key])
             changed = True

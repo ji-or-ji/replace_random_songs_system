@@ -11,7 +11,14 @@ public sealed class GlobalConfig
     [YamlMember(Alias = "current_playlist")] public string CurrentPlaylist { get; set; }
     [YamlMember(Alias = "auto_jump")] public AutoJumpSettings AutoJump { get; set; } = new();
     [YamlMember(Alias = "qq_sync")] public QqSyncSettings QqSync { get; set; } = new();
+    [YamlMember(Alias = "local_playback")] public LocalPlaybackSettings LocalPlayback { get; set; } = new();
     [YamlMember(Alias = "playlists")] public Dictionary<string, PlaylistEntry> Playlists { get; set; } = new();
+}
+
+/// <summary>本地播放模式：启用在“歌曲带本地文件”时直接播放本地文件。</summary>
+public sealed class LocalPlaybackSettings
+{
+    [YamlMember(Alias = "enabled")] public bool Enabled { get; set; }
 }
 
 public sealed class AutoJumpSettings
@@ -63,6 +70,7 @@ public sealed class Song
     [YamlMember(Alias = "song_name")] public string SongName { get; set; } = "";
     [YamlMember(Alias = "artist")] public string Artist { get; set; } = "";
     [YamlMember(Alias = "url")] public string Url { get; set; } = "";
+    [YamlMember(Alias = "local_path")] public string LocalPath { get; set; } = "";
     [YamlMember(Alias = "requested_by")] public string RequestedBy { get; set; } = "";
     [YamlMember(Alias = "created_at")] public string CreatedAt { get; set; }
     [YamlMember(Alias = "last_modified")] public string LastModified { get; set; }

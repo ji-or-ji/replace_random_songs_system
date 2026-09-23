@@ -53,6 +53,7 @@ public sealed partial class SongsPage : Page
             SongName = editor.NameBox.Text.Trim(),
             Artist = editor.ArtistBox.Text.Trim(),
             Url = editor.UrlBox.Text.Trim(),
+            LocalPath = editor.LocalPathBox.Text.Trim(),
             RequestedBy = editor.SelectedRequester,
             CreatedAt = now,
             LastModified = now,
@@ -84,6 +85,7 @@ public sealed partial class SongsPage : Page
         selected.SongName = editor.NameBox.Text.Trim();
         selected.Artist = editor.ArtistBox.Text.Trim();
         selected.Url = editor.UrlBox.Text.Trim();
+        selected.LocalPath = editor.LocalPathBox.Text.Trim();
         selected.RequestedBy = editor.SelectedRequester;
         selected.LastModified = SongService.Now();
 
@@ -127,6 +129,7 @@ public sealed partial class SongsPage : Page
             NameBox = { Header = "歌曲名称", Text = existing?.SongName ?? "" },
             ArtistBox = { Header = "歌手（可空）", Text = existing?.Artist ?? "" },
             UrlBox = { Header = "链接（可空）", Text = existing?.Url ?? "" },
+            LocalPathBox = { Header = "本地文件路径（可空）", Text = existing?.LocalPath ?? "" },
         };
         editor.RequesterBox.Header = "点歌人";
         editor.RequesterBox.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -152,6 +155,7 @@ public sealed partial class SongsPage : Page
         panel.Children.Add(editor.NameBox);
         panel.Children.Add(editor.ArtistBox);
         panel.Children.Add(editor.UrlBox);
+        panel.Children.Add(editor.LocalPathBox);
         panel.Children.Add(editor.RequesterBox);
 
         editor.Dialog.Title = existing == null ? "添加歌曲" : "编辑歌曲";
@@ -183,6 +187,7 @@ public sealed partial class SongsPage : Page
         public TextBox NameBox { get; } = new();
         public TextBox ArtistBox { get; } = new();
         public TextBox UrlBox { get; } = new();
+        public TextBox LocalPathBox { get; } = new();
         public ComboBox RequesterBox { get; } = new();
         public ContentDialog Dialog { get; } = new();
 

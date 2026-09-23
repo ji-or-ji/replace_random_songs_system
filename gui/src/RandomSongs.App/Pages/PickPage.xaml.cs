@@ -11,6 +11,7 @@ public sealed partial class PickPage : Page
     private List<KeyValuePair<string, PlaylistEntry>> _playlists = new();
     private string? _currentPlaylistId;
     private string? _resultUrl;
+    private Song? _resultSong;
     private bool _suppressCombo;
 
     public PickPage()
@@ -76,6 +77,9 @@ public sealed partial class PickPage : Page
     private void ClearResult()
     {
         _resultUrl = null;
+        _resultSong = null;
+        ResultSource.Text = string.Empty;
+        PlayLocalButton.Visibility = Visibility.Collapsed;
         ResultPanel.Visibility = Visibility.Collapsed;
         EmptyHint.Visibility = Visibility.Visible;
     }
@@ -116,32 +120,43 @@ public sealed partial class PickPage : Page
         if (song == null)
         {
             _resultUrl = null;
+            _resultSong = null;
             ResultPanel.Visibility = Visibility.Visible;
             ResultName.Text = "没有可用的歌曲";
             ResultMeta.Text = "歌单为空，或都在防重复窗口内且未开启自动重置";
+            ResultSource.Text = string.Empty;
             ResultUrl.Text = string.Empty;
+            PlayLocalButton.Visibility = Visibility.Collapsed;
             OpenLinkButton.IsEnabled = false;
             EmptyHint.Visibility = Visibility.Collapsed;
             return;
         }
 
         HistoryService.RecordPlay(song, _currentPlaylistId);
-        ShowResult(song);
         UpdatePreventionText();
 
-        var autoJump = ConfigService.Load().AutoJump ?? new AutoJumpSettings();
-        if (autoJump.Enabled)
+        var config = ConfigService.Load();
+        var localPlayback = config.LocalPlayback ?? new LocalPlaybackSettings();
+        var playedLocal = localPlayback.Enabled && LocalPlaybackService.Play(song);
+        ShowResult(song, playedLocal);
+
+        if (!playedLocal)
         {
-            var url = AutoJumpService.BuildUrl(song, autoJump);
-            if (!string.IsNullOrEmpty(url))
+            var autoJump = config.AutoJump ?? new AutoJumpSettings();
+            if (autoJump.Enabled)
             {
-                _ = OpenAfterDelayAsync(url, Math.Max(0, autoJump.Delay));
+                var url = AutoJumpService.BuildUrl(song, autoJump);
+                if (!string.IsNullOrEmpty(url))
+                {
+                    _ = OpenAfterDelayAsync(url, Math.Max(0, autoJump.Delay));
+                }
             }
         }
     }
 
-    private void ShowResult(Song song)
+    private void ShowResult(Song song, bool playedLocal)
     {
+        _resultSong = song;
         var autoJump = ConfigService.Load().AutoJump ?? new AutoJumpSettings();
         _resultUrl = AutoJumpService.BuildUrl(song, autoJump);
 
@@ -149,10 +164,25 @@ public sealed partial class PickPage : Page
         ResultMeta.Text =
             $"歌手: {(string.IsNullOrEmpty(song.Artist) ? "未知" : song.Artist)}    " +
             $"点歌人: {(string.IsNullOrEmpty(song.RequestedBy) ? "未知" : song.RequestedBy)}";
+
+        var hasLocal = LocalPlaybackService.HasLocalFile(song);
+        PlayLocalButton.Visibility = hasLocal ? Visibility.Visible : Visibility.Collapsed;
+        ResultSource.Text = hasLocal
+            ? $"本地文件: {song.LocalPath}{(playedLocal ? "（已调用本地播放器）" : "")}"
+            : string.Empty;
+
         ResultUrl.Text = string.IsNullOrEmpty(_resultUrl) ? string.Empty : _resultUrl;
         OpenLinkButton.IsEnabled = !string.IsNullOrEmpty(_resultUrl);
         ResultPanel.Visibility = Visibility.Visible;
         EmptyHint.Visibility = Visibility.Collapsed;
+    }
+
+    private void PlayLocalButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_resultSong is not null)
+        {
+            LocalPlaybackService.Play(_resultSong);
+        }
     }
 
     private async Task OpenAfterDelayAsync(string url, int seconds)

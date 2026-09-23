@@ -112,7 +112,7 @@ def initialize_system(quiet=False):
 # ---------------------------------------------------------------------------
 
 def display_song_info(song):
-    from auto_jump_manager import auto_jump
+    from auto_jump_manager import auto_jump, try_local_playback
     from history_manager import record_play
 
     if not song:
@@ -127,7 +127,8 @@ def display_song_info(song):
         print(f"链接: {song['url']}")
     print("=" * 30)
     record_play(song)
-    auto_jump(song)
+    if not try_local_playback(song):
+        auto_jump(song)
 
 
 def history_menu():

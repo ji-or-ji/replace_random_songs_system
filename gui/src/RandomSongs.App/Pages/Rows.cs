@@ -18,3 +18,10 @@ public sealed class PlaylistRow
     public string DisplayName { get; set; } = "";
     public string SubText { get; set; } = "";
 }
+
+public sealed class ParsedFileRow
+{
+    public string SongName { get; set; } = "";
+    public string Artist { get; set; } = "";
+    public string NoteText { get; set; } = "";
+}

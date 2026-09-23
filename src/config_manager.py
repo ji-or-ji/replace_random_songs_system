@@ -28,6 +28,10 @@ DEFAULT_QQ_SYNC = {
     "auto_on_start": True,
 }
 
+DEFAULT_LOCAL_PLAYBACK = {
+    "enabled": False,
+}
+
 DEFAULT_PREVENTION = {
     "enabled": True,
     "mode": "time_window",  # time_window | cycle
@@ -52,6 +56,7 @@ DEFAULT_GLOBAL = {
     "current_playlist": None,
     "auto_jump": DEFAULT_AUTO_JUMP,
     "qq_sync": DEFAULT_QQ_SYNC,
+    "local_playback": DEFAULT_LOCAL_PLAYBACK,
     "playlists": {},
 }
 
@@ -226,6 +231,17 @@ def get_qq_sync_config():
 def save_qq_sync_config(qq_sync):
     config = load_global_config()
     config["qq_sync"] = deep_merge(DEFAULT_QQ_SYNC, qq_sync)
+    save_global_config(config)
+    return True
+
+
+def get_local_playback():
+    return load_global_config().get("local_playback", dict(DEFAULT_LOCAL_PLAYBACK))
+
+
+def save_local_playback(local_playback):
+    config = load_global_config()
+    config["local_playback"] = deep_merge(DEFAULT_LOCAL_PLAYBACK, local_playback)
     save_global_config(config)
     return True
 

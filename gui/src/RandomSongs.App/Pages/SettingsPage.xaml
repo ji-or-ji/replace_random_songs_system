@@ -53,6 +53,17 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="10">
+                    <TextBlock Text="本地播放模式" FontWeight="SemiBold" />
+                    <ToggleSwitch x:Name="LocalPlaybackToggle" Header="启用本地播放" Toggled="LocalPlayback_Changed" />
+                    <TextBlock Text="启用后，抽到「带本地文件」的歌会直接播放本地文件；否则按自动跳转处理。"
+                               FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="10">
                     <TextBlock Text="QQ 歌单同步" FontWeight="SemiBold" />
                     <ToggleSwitch x:Name="QqEnabled" Header="启用 QQ 同步" Toggled="Qq_Changed" />
                     <ToggleSwitch x:Name="QqAuto" Header="启动时自动同步" Toggled="Qq_Changed" />

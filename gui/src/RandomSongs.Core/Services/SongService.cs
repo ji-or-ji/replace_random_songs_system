@@ -17,6 +17,7 @@ public static class SongService
         song.SongName ??= "";
         song.Artist ??= "";
         song.Url ??= "";
+        song.LocalPath ??= "";
         song.RequestedBy ??= "";
         if (string.IsNullOrEmpty(song.Id))
         {

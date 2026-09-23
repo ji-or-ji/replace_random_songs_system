@@ -213,9 +213,11 @@ def run_headless(args):
         results.append(song)
         if not args.no_save:
             record_play(song, playlist_id)
-        if jump_config.get("enabled"):
-            from auto_jump_manager import auto_jump
 
+        from auto_jump_manager import auto_jump, try_local_playback
+
+        played_local = try_local_playback(song, verbose=False)
+        if not played_local and jump_config.get("enabled"):
             auto_jump(song, jump_config, verbose=False)
 
     if not results:

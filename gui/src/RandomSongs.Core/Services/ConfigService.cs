@@ -10,6 +10,7 @@ public static class ConfigService
         var cfg = YamlStore.Load<GlobalConfig>(AppPaths.GlobalConfigFile) ?? new GlobalConfig();
         cfg.AutoJump ??= new AutoJumpSettings();
         cfg.QqSync ??= new QqSyncSettings();
+        cfg.LocalPlayback ??= new LocalPlaybackSettings();
         cfg.Playlists ??= new Dictionary<string, PlaylistEntry>();
         foreach (var entry in cfg.Playlists.Values)
         {
@@ -95,6 +96,16 @@ public static class ConfigService
     {
         var cfg = Load();
         cfg.AutoJump = autoJump;
+        Save(cfg);
+    }
+
+    public static LocalPlaybackSettings GetLocalPlayback()
+        => Load().LocalPlayback ?? new LocalPlaybackSettings();
+
+    public static void SaveLocalPlayback(LocalPlaybackSettings localPlayback)
+    {
+        var cfg = Load();
+        cfg.LocalPlayback = localPlayback;
         Save(cfg);
     }
 }

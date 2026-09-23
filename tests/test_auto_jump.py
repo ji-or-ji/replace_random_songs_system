@@ -83,6 +83,22 @@ class TestAutoJump(unittest.TestCase):
         )
         self.assertEqual(self.opened, [])
 
+    def test_local_playback_disabled_by_default(self):
+        from auto_jump_manager import try_local_playback
+
+        self.assertFalse(try_local_playback({"song_name": "x", "local_path": __file__}, verbose=False))
+
+    def test_local_playback_missing_file(self):
+        from auto_jump_manager import try_local_playback
+        from config_manager import get_local_playback, save_local_playback
+
+        config = get_local_playback()
+        config["enabled"] = True
+        save_local_playback(config)
+
+        song = {"song_name": "x", "local_path": "C:/nope/none.mp3"}
+        self.assertFalse(try_local_playback(song, verbose=False))
+
 
 if __name__ == "__main__":
     unittest.main()

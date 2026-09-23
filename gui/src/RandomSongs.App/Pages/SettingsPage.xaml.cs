@@ -42,6 +42,8 @@ public sealed partial class SettingsPage : Page
         QqAuto.IsOn = qq.AutoOnStart;
         QqId.Text = qq.PlaylistId;
 
+        LocalPlaybackToggle.IsOn = (config.LocalPlayback ?? new LocalPlaybackSettings()).Enabled;
+
         DataPathText.Text = AppPaths.DataRoot;
         _loading = false;
     }
@@ -161,6 +163,19 @@ public sealed partial class SettingsPage : Page
     }
 
     private void Qq_Changed(object sender, RoutedEventArgs e) => SaveQq();
+
+    // ---- 本地播放 ----
+
+    private void LocalPlayback_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading)
+        {
+            return;
+        }
+        var localPlayback = ConfigService.GetLocalPlayback();
+        localPlayback.Enabled = LocalPlaybackToggle.IsOn;
+        ConfigService.SaveLocalPlayback(localPlayback);
+    }
 
     private void QqId_LostFocus(object sender, RoutedEventArgs e) => SaveQq();
 

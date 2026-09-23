@@ -8,6 +8,7 @@
      - custom：打开自定义 URL，支持占位符 {query} / {song} / {artist}。
 """
 
+import os
 import time
 import webbrowser
 from urllib.parse import quote
@@ -62,6 +63,40 @@ def toggle_prefer_search():
     else:
         record_operation("切换优先搜索", "状态: 关闭")
         print("✅ 已关闭「优先搜索」：有自带链接时优先打开链接")
+
+
+def try_local_playback(song, verbose=True):
+    """本地播放模式：启用且歌曲带本地文件（且存在）时播放它；返回是否已处理。"""
+    try:
+        from config_manager import get_local_playback
+
+        config = get_local_playback()
+    except Exception:
+        return False
+    if not config.get("enabled"):
+        return False
+
+    path = (song or {}).get("local_path") or ""
+    if not path or not os.path.exists(path):
+        return False
+
+    try:
+        if hasattr(os, "startfile"):
+            os.startfile(path)  # Windows
+        else:
+            import subprocess
+            import sys
+
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.Popen([opener, path])
+        record_operation("本地播放", f"文件: {path}")
+        if verbose:
+            print(f"▶ 已调用本地播放器: {path}")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        if verbose:
+            print(f"⚠️ 本地播放失败: {exc}")
+        return False
 
 
 def set_jump_mode():

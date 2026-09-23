@@ -264,6 +264,124 @@ public sealed partial class PlaylistsPage : Page
         }
     }
 
+    private async void ImportFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new Windows.Storage.Pickers.FolderPicker();
+        if (App.Instance is not null)
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Instance);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        }
+        picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.MusicLibrary;
+        picker.FileTypeFilter.Add("*");
+
+        var folder = await picker.PickSingleFolderAsync();
+        if (folder is null)
+        {
+            return;
+        }
+
+        var known = FolderImportService.CollectKnownArtists();
+        var rows = new ObservableCollection<ParsedFileRow>();
+        var parsed = new List<FolderImportService.ParsedFile>();
+
+        var nameBox = new TextBox { Header = "新歌单名称", Text = folder.Name, Width = 460 };
+        var mergeCheck = new CheckBox { Content = "合并进当前歌单（不勾选则新建歌单）" };
+        var recursiveCheck = new CheckBox { Content = "包含子文件夹" };
+        var orderCombo = new ComboBox { Header = "文件名顺序", Width = 200, HorizontalAlignment = HorizontalAlignment.Left };
+        orderCombo.Items.Add("歌手 - 歌名");
+        orderCombo.Items.Add("歌名 - 歌手");
+        orderCombo.SelectedIndex = 0;
+        var summary = new TextBlock { Opacity = 0.7, TextWrapping = TextWrapping.Wrap };
+        var preview = new ListView
+        {
+            ItemsSource = rows,
+            MaxHeight = 260,
+            SelectionMode = ListViewSelectionMode.None,
+            ItemTemplate = (DataTemplate)Resources["ParsedRowTemplate"],
+        };
+
+        void Rescan()
+        {
+            var artistFirst = orderCombo.SelectedIndex == 0;
+            parsed = FolderImportService.ScanFolder(
+                folder.Path, recursiveCheck.IsChecked == true, artistFirst, known);
+            rows.Clear();
+            foreach (var item in parsed)
+            {
+                rows.Add(new ParsedFileRow
+                {
+                    SongName = item.SongName,
+                    Artist = string.IsNullOrEmpty(item.Artist) ? "（未识别出歌手）" : item.Artist,
+                    NoteText = string.IsNullOrEmpty(item.Note) ? item.FileName : $"{item.FileName}  ·  {item.Note}",
+                });
+            }
+            var unknown = parsed.Count(p => string.IsNullOrEmpty(p.Artist));
+            summary.Text = $"共 {parsed.Count} 个音频文件" + (unknown > 0 ? $"，其中 {unknown} 个未识别出歌手" : "");
+        }
+
+        recursiveCheck.Checked += (_, _) => Rescan();
+        recursiveCheck.Unchecked += (_, _) => Rescan();
+        orderCombo.SelectionChanged += (_, _) => Rescan();
+        Rescan();
+
+        var panel = new StackPanel { Spacing = 10, Width = 470 };
+        panel.Children.Add(nameBox);
+        panel.Children.Add(mergeCheck);
+        panel.Children.Add(recursiveCheck);
+        panel.Children.Add(orderCombo);
+        panel.Children.Add(summary);
+        panel.Children.Add(preview);
+
+        var dialog = new ContentDialog
+        {
+            Title = $"从文件夹导入：{folder.Name}",
+            Content = panel,
+            PrimaryButtonText = "导入",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        if (parsed.Count == 0)
+        {
+            BackupInfo.Text = "该文件夹里没有音频文件";
+            return;
+        }
+
+        try
+        {
+            if (mergeCheck.IsChecked == true)
+            {
+                var target = CurrentId;
+                if (string.IsNullOrEmpty(target))
+                {
+                    BackupInfo.Text = "没有当前歌单可合并";
+                    return;
+                }
+                var added = FolderImportService.ImportIntoPlaylist(target, parsed);
+                HistoryService.RecordOperation("文件夹导入", $"目录: {folder.Path}, 新增: {added}", playlistId: target);
+                BackupInfo.Text = $"已合并进当前歌单：新增 {added} 首（共解析 {parsed.Count} 个文件）";
+            }
+            else
+            {
+                var name = string.IsNullOrWhiteSpace(nameBox.Text) ? folder.Name : nameBox.Text.Trim();
+                var (playlistId, count) = FolderImportService.ImportAsNewPlaylist(name, folder.Path, parsed);
+                HistoryService.RecordOperation("文件夹导入", $"目录: {folder.Path}, 歌曲数: {count}", playlistId: playlistId);
+                BackupInfo.Text = $"已导入为新歌单：{count} 首";
+                Load();
+            }
+        }
+        catch (Exception ex)
+        {
+            BackupInfo.Text = $"导入失败：{ex.Message}";
+        }
+    }
+
     private async void ImportQq_Click(object sender, RoutedEventArgs e)
     {
         var idBox = new TextBox { Header = "QQ 歌单 ID 或分享链接", Width = 360 };
